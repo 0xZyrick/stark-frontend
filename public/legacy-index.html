@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>STARK — Descend the Spire</title>
+<link rel="stylesheet" href="./css/style.css">
+
+<script type="importmap">
+{
+    "imports": {
+        "starknet": "https://esm.sh/starknet@10.0.2",
+        "@privy-io/react-auth": "https://esm.sh/@privy-io/react-auth@1.0.0"
+    }
+}
+</script>
+</head>
+
+
+<body>
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="splash-logo">STARK</div>
+  <div class="splash-tag">Descend the Spire</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+</div>
+
+<!-- ================= LOGIN PAGE ================= -->
+<!-- First screen after splash. Two doors in: Ranked ("Enter the Spire",
+     pay-to-play, needs sign-in — Privy is not wired yet, see loginBtn
+     handler) and Guest (free, local practice + tutorial, no sign-in). -->
+<div class="page login-page" id="loginPage">
+  <div class="login-bg-scene" aria-hidden="true">
+  </div>
+  <div class="login-card">
+    <div class="login-logo">STARK</div>
+    <div class="login-tag">Descend the Spire</div>
+    <div class="login-season" id="loginSeasonChip">Season 1</div>
+
+    <button class="play-btn login-btn login-btn-disabled" id="loginRankedBtn" disabled aria-disabled="true">
+      <span>⚔️</span> Enter the Spire
+      <span class="login-btn-sub">Compete on the leaderboard</span>
+      <span class="coming-soon-badge">Coming soon</span>
+    </button>
+    <button class="ghost-btn login-btn-ghost" id="loginGuestBtn">
+      🧭 Guest Mode
+      <span class="login-btn-sub">Play free, no sign-in</span>
+    </button>
+  </div>
+</div>
+
+<!-- ================= GAME PAGE ================= -->
+<div class="page game-page" id="gamePage">
+
+  <div class="game-bg" id="gameBg">
+    <!-- Placeholder: swap per-world background art in here (see setWorldBg in JS) -->
+    <img class="game-bg-img" id="gameBgImg" src="images/worlds/outer-spire.jpg" alt="" onerror="this.style.opacity='0'">
+    <div class="game-bg-scrim"></div>
+  </div>
+
+  <!-- Header: Best score (left, boxed) — profile + rank badge (center) —
+       live score (right). Rank used to live in a separate long banner
+       below the header; it's now a small badge on the portrait instead. -->
+  <div class="game-header" id="gameHeader">
+    <div class="header-best-box">
+      <span class="hb-lbl">Best</span>
+      <span class="hb-val" id="highScoreEl">0</span>
+    </div>
+
+    <div class="player-card">
+      <div class="player-portrait" id="playerPortraitWrap">
+        <!-- Placeholder: swap with the base character art -->
+        <img class="player-portrait-img" id="playerPortraitImg" src="images/character/neutral.png" alt="" onerror="this.style.display='none'">
+        <span class="player-portrait-fallback">🙂</span>
+        <span class="header-rank-badge" id="headerRankBadge" title="Rank">🌑</span>
+      </div>
+      <div class="player-id">
+        <div class="player-name" id="playerNameEl">Player</div>
+        <div class="header-rank-name" id="rankPill">SPARK DIVER</div>
+      </div>
+    </div>
+
+    <div class="score-block">
+      <div class="score" id="scoreEl">0</div>
+      <div class="combo-badge" id="comboBadge"><span class="combo-x">COMBO</span><span class="combo-n" id="comboBadgeN">x2</span><span class="combo-meter"><span class="combo-meter-fill" id="comboMeterFill"></span></span></div>
+    </div>
+  </div>
+
+  <div class="depth-chip" id="depthEl">DEPTH 1</div>
+
+  <div class="quest-bar-card" id="levelBarRow">
+    <div class="quest-bar-icon" id="questBarIcon">📖</div>
+    <div class="quest-bar-body">
+      <div class="quest-bar-top">
+        <span class="quest-bar-name" id="questBarName">The Threshold Gate</span>
+        <span class="quest-bar-pct" id="questBarPct">0%</span>
+      </div>
+      <div class="quest-bar-track">
+        <div class="quest-bar-fill" id="levelProgressBar" style="width:0%"></div>
+        <div class="quest-bar-ticks"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="quest-bar-meta" id="questBarMeta">0 / 800 score</div>
+    </div>
+  </div>
+
+  <div class="board-wrap scene-outer" id="boardWrap">
+    <div class="flash-overlay" id="flashOverlay"></div>
+    <div class="columns" id="columns"></div>
+  </div>
+
+  <!-- Right control dock: Loaded / Next / Held / Undo / Pause — vertical rail on every screen size -->
+  <div class="launcher side-dock-right" id="rightDock">
+    <div class="lane loaded-lane">
+      <div class="active-wrap">
+        <div class="orb active-orb" id="activeOrb">2</div>
+      </div>
+      <span class="tag">Loaded</span>
+    </div>
+    <div class="lane next-lane">
+      <div class="orb mini empty" id="nextOrb">–</div>
+      <span class="tag">Next</span>
+    </div>
+    <span class="side-dock-divider"></span>
+    <div class="lane held" id="heldLane">
+      <button class="power-btn-round held-btn" id="heldBtn" aria-label="Hold">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M9 12.5V5.5a1.5 1.5 0 0 1 3 0v5M12 10.5V4a1.5 1.5 0 0 1 3 0v6.5M15 10.5V5.5a1.5 1.5 0 0 1 3 0V13c0 4-2.5 7-6.5 7S4 17.5 4 14v-2.2c0-.9.7-1.6 1.6-1.6.5 0 1 .2 1.3.6l1.4 1.7"/></svg>
+      </button>
+      <div class="orb empty" id="heldOrb" style="display:none;">–</div>
+      <span class="tag">Held</span>
+    </div>
+    <div class="lane undo" id="undoLane">
+      <button class="power-btn-round undo-btn" id="undoBtn" aria-label="Undo">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5A5.5 5.5 0 0 1 20 14.5v0A5.5 5.5 0 0 1 14.5 20H11"/></svg>
+      </button>
+      <span class="tag">Undo</span>
+      <span class="count" id="undoCount">1</span>
+    </div>
+    <span class="side-dock-divider"></span>
+    <div class="lane pause-lane">
+      <button class="power-btn-round pause-btn" id="pauseBtn" aria-label="Pause" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>
+      </button>
+      <span class="tag">Pause</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="narrator" id="narratorEl"><span id="narratorText"></span><span class="cursor" id="narratorCursor"></span></div>
+
+<!-- ================= HANDS-ON TUTORIAL (real UI coach-marks, first play only) ================= -->
+<div class="coach-overlay" id="coachOverlay" style="display:none;">
+  <div class="coach-spot" id="coachSpot"></div>
+  <div class="coach-hint-tap" id="coachHintTap" style="display:none;"></div>
+  <div class="coach-bubble" id="coachBubble">
+    <div class="coach-text" id="coachText"></div>
+    <div class="coach-actions">
+      <button class="coach-skip" id="coachSkipBtn">Skip tutorial</button>
+      <button class="coach-next" id="coachNextBtn">Next</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= HOME HUB ================= -->
+<div class="page hub-page" id="homePage">
+  <div class="hub-header hub-header-plain">
+    <div class="hub-currency" aria-hidden="true"><svg class="gem" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 9 L12 22 L4 9 Z"/></svg><span id="homeShardsEl">0</span></div>
+  </div>
+  <div class="hub-content">
+    <div class="home-hero-card">
+      <div class="home-identity">
+        <div class="home-logo">STARK</div>
+        <div class="season-tag">SEASON 1 · THE SPIRE</div>
+        <div class="home-player-row">
+          <div class="home-player-name" id="homePlayerNameEl">Player</div>
+          <div class="home-rank-pill rank-pill" id="homeRankPill">🌑 SPARK DIVER</div>
+        </div>
+        <div class="home-depth-chip" id="homeDepthChip">Depth progress unlocks after your first run</div>
+      </div>
+
+      <div class="home-stats">
+        <div class="home-stat">
+          <span class="home-stat-ic">🏆</span>
+          <span class="home-stat-lbl">Best</span>
+          <b id="homeHighScore">0</b>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-ic">🎯</span>
+          <span class="home-stat-lbl">Runs</span>
+          <b id="homeRunsPlayed">0</b>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-ic">📊</span>
+          <span class="home-stat-lbl">Pos</span>
+          <b id="homePosition">—</b>
+        </div>
+      </div>
+
+      <div class="home-cta-block">
+        <button class="play-btn home-play-primary" id="playBtn"><span>▶</span> Practice the Spire</button>
+         <div class="ghost-row">
+           <button class="ghost-btn" id="dailyBtn">📅 Daily</button>
+         </div>
+      </div>
+    </div>
+
+    <div class="home-lb-card home-daily-card">
+      <div class="home-lb-header">
+        <span class="home-lb-title">📅 Daily Challenge</span>
+        <button class="home-lb-more" id="homeLbMoreBtn">Open daily →</button>
+      </div>
+      <div class="home-lb-top5" id="homeLbTop5">
+        <div class="daily-home-lead">One offline board. A fresh target every day.</div>
+        <div class="daily-home-target"><span>🎯</span><strong>Build your best run</strong><span>Free to play</span></div>
+      </div>
+      <div class="home-lb-crowd" id="homeLbCrowd"></div>
+    </div>
+  </div>
+</div>
+<!-- ================= SIGILS & QUESTS PAGE (merged: was Sigils + Quests) ================= -->
+<div class="page hub-page" id="achvPage">
+  <div class="hub-header">
+    <button class="hub-back-btn" id="questBackBtn" type="button" aria-label="Back">←</button>
+    <span class="hub-title">Sigils &amp; Quests</span>
+    <div class="hub-currency"><svg class="gem" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 9 L12 22 L4 9 Z"/></svg><span id="achvShardsEl">0</span></div>
+  </div>
+  <div class="hub-content">
+    <div class="quest-tabs">
+      <button class="quest-tab active" data-qtab="sigils" type="button">🔰 Sigils <span id="sigilsCountTag">0/5</span></button>
+      <button class="quest-tab" data-qtab="achv" type="button">Achievements <span id="achvDoneTag">0/14</span></button>
+    </div>
+    <div class="vault-note" id="sigilsPanel">
+      Sigils are rare finds — earned by pulling off hidden feats as you descend. Keep playing to uncover them all.
+      <div class="vault-grid" id="sigilList" style="margin-top:10px;"></div>
+    </div>
+    <div class="quest-card-grid" id="missionsList" style="display:none;"></div>
+    <div class="quest-card-grid" id="achvList" style="display:none; margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- ================= SHOP PAGE ================= -->
+<div class="page hub-page" id="shopPage">
+  <div class="hub-header">
+    <span class="hub-title">Shop</span>
+    <div class="hub-currency"><svg class="gem" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L20 9 L12 22 L4 9 Z"/></svg><span id="shopShardsEl">0</span></div>
+  </div>
+  <div class="hub-content">
+    <div class="section-label">Boosts <span class="count-tag" id="boostsOwnedTag">0/4</span></div>
+    <div class="shop-grid" id="shopBoostsGrid"></div>
+    <div class="section-label">Skins <span class="count-tag" id="skinsOwnedTag">1/4</span></div>
+    <div class="shop-grid" id="shopSkinsGrid"></div>
+  </div>
+</div>
+
+<!-- ================= SETTINGS PAGE ================= -->
+<div class="page hub-page" id="settingsPage">
+  <div class="hub-header">
+    <span class="hub-title">Settings</span>
+  </div>
+  <div class="hub-content">
+    <div class="settings-row">
+      <div>
+        <div class="t1">Sound</div>
+        <div class="t2">Merge, combo &amp; level-up sounds</div>
+      </div>
+      <div class="switch on sound-switch" id="soundSwitch"><div class="knob"></div></div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="t1">Music</div>
+        <div class="t2">Background score</div>
+      </div>
+      <div class="switch on music-switch" id="musicSwitch"><div class="knob"></div></div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="t1">Haptics</div>
+        <div class="t2">Vibrate on big chains</div>
+      </div>
+      <div class="switch on haptic-switch" id="hapticSwitch"><div class="knob"></div></div>
+    </div>
+    <div class="settings-row" style="flex-direction:column; align-items:stretch; gap:10px;">
+      <div>
+        <div class="t1">Player name</div>
+        <div class="t2">Shown on the leaderboard</div>
+      </div>
+      <div class="name-edit-row">
+        <input type="text" id="nameInput" maxlength="12" placeholder="Player">
+        <button class="secondary" id="nameSaveBtn">Save</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="t1">Equipped skin</div>
+        <div class="t2" id="equippedSkinLabel">Classic</div>
+      </div>
+      <div class="shop-swatches" id="settingsSwatch"></div>
+    </div>
+    <div class="ghost-row" style="margin:14px 0;">
+      <button class="ghost-btn" id="settingsQuestsBtn">⭐ Quests</button>
+    </div>
+    <button class="danger-btn" id="resetBtn">Reset all progress</button>
+    <div class="credit-note">Stark · The Spire</div>
+  </div>
+</div>
+
+<!-- ================= LEADERBOARD PAGE ================= -->
+<div class="page hub-page" id="lbPage">
+  <div class="hub-header">
+    <button class="hub-back-btn" id="lbBackBtn" aria-label="Back to home">←</button>
+    <span class="hub-title">Leaderboard</span>
+  </div>
+  <div class="hub-content">
+    <div class="contest-tabs">
+      <button class="contest-tab active" data-lb="global">Community</button>
+      <button class="contest-tab" data-lb="weekly">This Week</button>
+      <button class="contest-tab" data-lb="friends">Friends</button>
+    </div>
+    <div class="friends-add-row" id="friendsAddRow">
+      <input type="text" id="friendNameInput" maxlength="12" placeholder="Add a friend's name">
+      <button class="secondary" id="friendAddBtn">Add</button>
+    </div>
+    <div class="contest-grid" id="lbList"></div>
+    <div class="lb-note">Season 1 · shared runs · no ratings</div>
+  </div>
+</div>
+
+<!-- ================= CONTEST PAGE ================= -->
+<!-- Per-world standings — settled runs only, filtered client-side from the
+     same leaderboard entries lbPage reads (see renderLeaderboardList's
+     worldFilter param). Feeds into the overall Leaderboard above; this is
+     the "which world did you reach" cut of the same data, not a separate
+     dataset. Real world-scoped settlement (world_id on the contract) is
+     still pending — see the contracts discussion. -->
+<div class="page hub-page" id="contestPage">
+  <div class="hub-header">
+    <button class="hub-back-btn" id="contestBackBtn" aria-label="Back to home">←</button>
+    <span class="hub-title">Contest</span>
+  </div>
+  <div class="hub-content">
+    <div class="contest-tabs" id="contestWorldTabs">
+      <button class="contest-tab active" data-world="outer">🌑 Outer</button>
+      <button class="contest-tab" data-world="mid">🌗 Mid</button>
+      <button class="contest-tab" data-world="core">🔥 Core</button>
+    </div>
+    <div class="contest-grid" id="contestList"></div>
+    <div class="lb-note">
+      Contest ranks runs by how deep they reached in each world. Counts toward the Leaderboard.
+      <a href="#" id="contestToLbLink">🏆 View full Leaderboard →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DAILY MISSIONS PAGE ================= -->
+<!-- Streak + a small daily mission set, distinct from the Leaderboard/
+     Contest — these don't count toward either (see the lb-note below). -->
+<div class="page hub-page" id="dailyPage">
+  <div class="hub-header">
+    <button class="hub-back-btn" id="dailyBackBtn" aria-label="Back to home">←</button>
+    <span class="hub-title">Daily</span>
+  </div>
+  <div class="hub-content">
+    <div class="daily-streak-card">
+      <div class="daily-streak-flame">🔥</div>
+      <div class="daily-streak-count" id="dailyStreakCount">0</div>
+      <div class="daily-streak-label">day streak</div>
+    </div>
+    <button class="play-btn" id="dailyDescendBtn"><span>▶</span> Descend (Daily Board)</button>
+    <div class="section-label">Today's Missions <span class="count-tag" id="dailyMissionsCountTag">0/3</span></div>
+    <div class="daily-missions-list" id="dailyMissionsList"></div>
+    <div class="lb-note">Missions don't count toward the Leaderboard — resets every day, any run today counts.</div>
+  </div>
+</div>
+
+<!-- ================= BOTTOM NAV ================= -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bottom-nav-inner">
+    <button class="nav-btn active" data-nav="home"><span class="nav-ic">🎮</span>Home</button>
+    <button class="nav-btn" data-nav="vault"><span class="nav-ic">✦</span>Sigils</button>
+    <button class="nav-btn" data-nav="settings"><span class="nav-ic">☰</span>More</button>
+  </div>
+</nav>
+
+<!-- ================= OVERLAYS ================= -->
+<div class="overlay" id="objectivesOverlay">
+  <div class="panel">
+    <h2>Quest</h2>
+    <div class="rank-pill" id="objRankPill" style="margin-bottom:8px;">🌑 SPARK DIVER</div>
+    <div class="home-stats">
+      <span>SCORE <b id="objCurrentScore">0</b></span>
+      <span>BEST <b id="objBestScore">0</b></span>
+    </div>
+    <div class="obj-card" id="levelObjCard">
+      <div class="obj-title" id="levelObjTitle">This depth</div>
+      <div class="obj-body" id="levelObjBody">Reach 1,000 score</div>
+    </div>
+    <div class="lb-note" style="margin:12px 0 -2px; text-align:left;">Still to chase this run:</div>
+    <div id="objMissionsList"></div>
+    <div class="btn-row"><button class="primary" id="objBackBtn">Back to game</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="levelStartOverlay">
+  <div class="panel win">
+    <div class="badge-icon">🎯</div>
+    <h2 id="levelStartTitle">LEVEL 1</h2>
+    <div class="obj-card">
+      <div class="obj-title">Objective</div>
+      <div class="obj-body" id="levelStartObj">Reach 1,000 score</div>
+    </div>
+    <div class="btn-row"><button class="primary" id="levelStartBtn">Got it</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="choiceOverlay">
+  <div class="panel">
+    <div class="choice-hint">Next orb</div>
+    <h2>Pick one for your hand</h2>
+    <div class="lb-note">Tap a tile — it becomes your Loaded orb.</div>
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;" id="choiceOptions"></div>
+  </div>
+</div>
+
+<div class="overlay" id="depthClearOverlay">
+  <div class="path-map-panel" id="depthPathPanel">
+    <div class="confetti-wrap" id="depthConfetti"></div>
+    <h2 class="pm-title" id="depthClearTitle">Depth Cleared!</h2>
+    <div class="pm-sub" id="depthClearSub">The Spire opens a new path</div>
+    <div class="pm-reward" id="depthClearReward">✨ +50 shards · Score <span id="depthClearScore">0</span></div>
+    <div class="path-scroll" id="depthPathScroll">
+      <div class="path-canvas" id="depthPathCanvas"></div>
+    </div>
+    <div class="path-map-actions">
+      <button class="primary" id="depthContinueBtn" style="width:100%;">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- climbOverlay retired — path map handles progression -->
+<div class="overlay" id="climbOverlay" style="display:none !important;" aria-hidden="true">
+  <div class="climb-track" id="climbTrack"><div class="climb-walker" id="climbWalker"></div></div>
+  <div id="climbLabel"></div><div id="climbSub"></div>
+</div>
+
+<div class="overlay" id="rankUpOverlay">
+  <div class="panel win">
+    <div class="confetti-wrap" id="rankConfetti"></div>
+    <div class="badge-icon" id="rankUpIcon" style="font-size:36px;">🌟</div>
+    <h2>Rank Up!</h2>
+    <div class="final-score" id="rankUpName" style="font-size:28px;">ASCENDANT</div>
+    <div class="final-label" id="rankUpFrom">from Seeker</div>
+    <div class="btn-row"><button class="primary" id="rankUpOkBtn">Continue</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="pauseOverlay">
+  <div class="panel" style="max-width:400px;">
+    <h2>Paused</h2>
+    <div class="levels-hint" style="margin-top:2px;">Tap an unlocked depth on the path</div>
+    <div class="path-map-panel" style="margin-top:6px;">
+      <div class="path-scroll" id="pausePathScroll">
+        <div class="path-canvas" id="pausePathCanvas"></div>
+      </div>
+    </div>
+    <div class="btn-row" style="flex-direction:column; gap:10px; margin-top:14px;">
+      <button class="primary" id="resumeBtn">Resume</button>
+      <button class="secondary" id="pauseStartDepthBtn">Start selected depth</button>
+      <button class="secondary" id="pauseHomeBtn">Back to Home</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <div class="confetti-wrap" id="overCoinfetti"></div>
+    <div class="badge-icon" id="overlayBadge" style="background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.4), transparent 60%), linear-gradient(135deg, var(--coral), #ff8e53);">💥</div>
+    <h2 id="overlayTitle">OVERFLOW</h2>
+    <div class="final-score" id="finalScore">0</div>
+    <div class="final-label" id="finalLevel">Reached Level 1</div>
+    <div class="fail-tip" id="failTip">Column overflow — keep merges flowing to free space before columns fill up.</div>
+    <div class="rowstats">
+      <div><span class="k">Best Score</span><span class="v" id="finalBest">0</span></div>
+      <div><span class="k">Shards</span><span class="v gold" id="finalShards">+0</span></div>
+    </div>
+    <button class="secondary" id="settleRunBtn" style="display:none; width:100%; margin-bottom:10px;">⛓️ Settle on Starknet</button>
+    <div class="btn-row">
+      <button class="primary" id="restartBtn" style="width:100%;">Play Again</button>
+    </div>
+    <div class="contest-grid" id="gameOverLbList" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<div class="overlay" id="pbOverlay">
+  <div class="panel win">
+    <div class="confetti-wrap" id="pbConfetti"></div>
+    <div class="badge-icon">👑</div>
+    <h2>New Personal Best!</h2>
+    <div class="final-score" id="pbScore">0</div>
+    <div class="btn-row"><button class="primary" id="pbOkBtn" style="width:100%;">Awesome</button></div>
+  </div>
+</div>
+
+<div class="relic-pop" id="relicPop">
+  <span class="glyph" id="relicPopGlyph">✦</span>
+  <div class="txt"><span class="tag">Vault +1</span><span class="name" id="relicPopName">Ember Shard</span></div>
+</div>
+
+<div class="toast" id="toastPop">
+  <span class="ic" id="toastIc">⭐</span>
+  <div class="txt"><span class="tag" id="toastTag">ACHIEVEMENT</span><span class="name" id="toastName"></span></div>
+</div>
+
+<div class="chain-reward" id="chainRewardEl"></div>
+<div class="chain-reward combo-reward" id="comboRewardEl"></div>
+
+<script type="module" src="./js/privy.js"></script>
+<script type="module" src="./js/chain.js"></script>
+<script type="module" src="./js/game-logic.js"></script>
+<script type="module" src="./js/game.js"></script>
+</body>
+</html>
