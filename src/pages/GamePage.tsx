@@ -48,6 +48,7 @@ export function GamePage({ engine, show }: GamePageProps) {
     clearBoardTiles,
     clearChainFlash,
     dismissUnlock,
+    markGuestLevelCleared,
   } = engine;
 
   const [toast, setToast] = useState({
@@ -74,18 +75,25 @@ export function GamePage({ engine, show }: GamePageProps) {
   useEffect(() => {
     if (phase === 'depthclear' || phase === 'gameover' || gameOver) {
       setEndReady(false);
-      const t = window.setTimeout(() => setEndReady(true), 1800);
+      const t = window.setTimeout(() => setEndReady(true), 4200);
       return () => window.clearTimeout(t);
     }
     setEndReady(false);
   }, [phase, gameOver]);
 
+  
+  useEffect(() => {
+    if (phase !== 'depthclear') return;
+    if (!meta.isGuest || !meta.activeLevelId) return;
+    markGuestLevelCleared?.(meta.activeLevelId);
+  }, [phase, meta.isGuest, meta.activeLevelId, markGuestLevelCleared]);
+
   useEffect(() => {
     if (phase !== 'depthclear') return;
     sndWin();
     setMascotClear(true);
-    const t1 = window.setTimeout(() => clearBoardTiles(), 900);
-    const t2 = window.setTimeout(() => setMascotClear(false), 2200);
+    const t1 = window.setTimeout(() => clearBoardTiles(), 1400);
+    const t2 = window.setTimeout(() => setMascotClear(false), 3600);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -303,7 +311,7 @@ export function GamePage({ engine, show }: GamePageProps) {
         </div>
       </Panel>
 
-      <Panel id="depthClearOverlay" open={phase === 'depthclear' && endReady} win>
+      <Panel id="depthClearOverlay" open={phase === 'depthclear' && endReady && !meta.unlock} win>
         <div className="win-visual">
           <Mascot mood="cheer" size={100} className="mascot-in-panel" />
           <div className="win-title">CLEAR</div>
@@ -354,7 +362,7 @@ export function GamePage({ engine, show }: GamePageProps) {
         </div>
       </Panel>
 
-            <Panel id="overlay" open={(phase === 'gameover' || gameOver) && endReady}>
+            <Panel id="overlay" open={(phase === 'gameover' || gameOver) && endReady && !meta.unlock}>
         <div className="win-visual">
           <Mascot mood="fail" size={96} className="mascot-in-panel" />
           <div className="win-title" style={{ color: 'var(--coral)' }}>OVERFLOW</div>

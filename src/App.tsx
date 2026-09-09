@@ -1,8 +1,8 @@
 /**
- * Privy login → name → fund prompt → Home
- * Spire = custodial backend wallet (user funds address; backend signs).
+ * Session gate: splash → (setting up) → login OR restore → name if needed → home only with account.
+ * Guest scores persist per Privy user id.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useGameEngine } from './hooks/useGameEngine';
 import { Splash } from './pages/Splash';
 import { LoginPage } from './pages/LoginPage';
@@ -12,8 +12,8 @@ import { WorldSelectPage } from './pages/WorldSelectPage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { SigilsPage } from './pages/SigilsPage';
 import { GamePage } from './pages/GamePage';
-import { SpireEntryModal } from './components/SpireEntryModal';
 import { FundPromptModal } from './components/FundPromptModal';
+import { SettingsModal } from './components/SettingsModal';
 import { Mascot } from './components/Mascot';
 import { sndUI, unlockAudio } from './audio/sound';
 import {
@@ -27,53 +27,7 @@ import { fetchLeaderboard } from './privy/api';
 import { isPrivyConfigured } from './privy';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSpireWallet } from './starknet/useSpireWallet';
-
-/** App body that uses custodial wallet — only mounted when Privy is configured */
-function AppWithWallet() {
-  const wallet = useSpireWallet();
-  const { logout, user, ready, authenticated } = usePrivy();
-  const userId = user?.id ?? null;
-  return (
-    <AppShell
-      wallet={{
-        ...wallet,
-        authenticated: authenticated || wallet.authenticated,
-        ready: ready && wallet.ready,
-        userId,
-        logout: async () => {
-          await logout();
-        },
-      }}
-    />
-  );
-}
-
-function AppWithoutWallet() {
-  const wallet = {
-    ready: true,
-    authenticated: false,
-    connected: false,
-    address: null as string | null,
-    short: null as string | null,
-    balanceHint: null as string | null,
-    busy: false,
-    error: null as string | null,
-    ensure: async () => {
-      throw new Error('Login required');
-    },
-    connect: async () => {
-      throw new Error('Login required');
-    },
-    startRunOnChain: async () => {
-      throw new Error('Login required');
-    },
-    settleRunOnChain: async (_b: unknown) => {
-      throw new Error('Login required');
-    },
-    clearError: () => {},
-  };
-  return <AppShell wallet={wallet} />;
-}
+import { loadProgress } from './lib/accountStore';
 
 type WalletApi = {
   ready: boolean;
@@ -103,8 +57,62 @@ type WalletApi = {
   userId?: string | null;
 };
 
-function AppShell({ wallet }: { wallet: WalletApi }) {
-  const engine = useGameEngine();
+function AppWithWallet() {
+  const wallet = useSpireWallet();
+  const { logout, user, ready, authenticated } = usePrivy();
+  const userId = user?.id ?? null;
+  return (
+    <AppShell
+      accountId={userId}
+      wallet={{
+        ...wallet,
+        authenticated: Boolean(authenticated),
+        ready: Boolean(ready),
+        userId,
+        logout: async () => {
+          await logout();
+        },
+      }}
+    />
+  );
+}
+
+function AppWithoutWallet() {
+  const wallet: WalletApi = {
+    ready: true,
+    authenticated: false,
+    connected: false,
+    address: null,
+    short: null,
+    balanceHint: null,
+    busy: false,
+    error: null,
+    ensure: async () => {
+      throw new Error('Login required');
+    },
+    connect: async () => {
+      throw new Error('Login required');
+    },
+    startRunOnChain: async () => {
+      throw new Error('Login required');
+    },
+    settleRunOnChain: async () => {
+      throw new Error('Login required');
+    },
+    clearError: () => {},
+    userId: null,
+  };
+  return <AppShell accountId={null} wallet={wallet} />;
+}
+
+function AppShell({
+  wallet,
+  accountId,
+}: {
+  wallet: WalletApi;
+  accountId: string | null;
+}) {
+  const engine = useGameEngine(accountId);
   const {
     phase,
     setPhase,
@@ -125,10 +133,11 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
   const [showAchv, setShowAchv] = useState(false);
   const [showSigils, setShowSigils] = useState(false);
   const [showWorldSelect, setShowWorldSelect] = useState(false);
-  const [showSpireModal, setShowSpireModal] = useState(false);
   const [showFundPrompt, setShowFundPrompt] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [spireBusy, setSpireBusy] = useState(false);
   const [spireError, setSpireError] = useState<string | null>(null);
+  const [setupBusy, setSetupBusy] = useState(false);
   const [remoteLb, setRemoteLb] = useState<
     Array<{
       name: string;
@@ -143,50 +152,61 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
   const activeRunRef = useRef<{ runId: number; seed: string } | null>(null);
   const settlingRef = useRef(false);
 
-  const nameKey = (uid?: string | null) =>
-    uid ? `stark-player-name:${uid}` : 'stark-player-name';
-
-  // Wait for Privy ready, then restore session + per-account name
   useEffect(() => {
     const boot = window.setTimeout(() => setSplashGone(true), 900);
     return () => window.clearTimeout(boot);
   }, []);
 
+  /**
+   * Session gate:
+   * - While Privy not ready → setup overlay, stay off home
+   * - Not authenticated → login only
+   * - Authenticated → restore name/progress → home (or name once)
+   */
   useEffect(() => {
     if (!splashGone) return;
-    // Wait until auth layer is ready (when Privy is on)
-    if (isPrivyConfigured() && wallet.ready === false) return;
 
-    try {
-      const uid = wallet.userId;
-      const saved =
-        (uid && localStorage.getItem(nameKey(uid))) ||
-        localStorage.getItem('stark-player-name'); // legacy fallback
+    if (isPrivyConfigured() && !wallet.ready) {
+      setSetupBusy(true);
+      return;
+    }
 
-      if (wallet.authenticated) {
-        if (saved) {
-          setPlayerName(saved);
+    if (!wallet.authenticated) {
+      setSetupBusy(false);
+      setShowName(false);
+      if (phase === 'home' || phase === 'splash') setPhase('login');
+      return;
+    }
+
+    // Authenticated — restore account
+    setSetupBusy(true);
+    const uid = wallet.userId || accountId;
+    const progress = loadProgress(uid);
+    const savedName =
+      progress?.playerName ||
+      (uid ? localStorage.getItem(`stark-player-name:${uid}`) : null);
+
+    void (async () => {
+      try {
+        await wallet.ensure().catch(() => null);
+        if (savedName) {
+          setPlayerName(savedName);
           setShowName(false);
           setPhase('home');
-          void wallet.ensure().catch(() => {});
-          return;
+        } else {
+          setShowName(true);
+          setPhase('login');
         }
-        // Logged in but no name yet for this account
-        setShowName(true);
-        setPhase('login');
-        return;
+      } finally {
+        setSetupBusy(false);
       }
-
-      setPhase('login');
-      setShowName(false);
-    } catch {
-      setPhase('login');
-    }
+    })();
   }, [
     splashGone,
     wallet.ready,
     wallet.authenticated,
     wallet.userId,
+    accountId,
     setPhase,
     setPlayerName,
   ]);
@@ -280,47 +300,37 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
     })();
   }, [phase, meta.isGuest, meta.playerName, score, tier, engine.board.bestTile, wallet]);
 
-  // Auto-continue after Privy OAuth returns authenticated
-  useEffect(() => {
-    if (phase !== 'login' || showName) return;
-    if (!wallet.authenticated) return;
-    // soft nudge — user still presses Continue on login if AuthButtons shows it
-  }, [wallet.authenticated, phase, showName]);
-
   const afterAuth = (hint?: string) => {
     unlockAudio();
     sndUI();
-    const uid = wallet.userId;
-    let saved: string | null = null;
-    try {
-      saved =
-        (uid && localStorage.getItem(nameKey(uid))) ||
-        localStorage.getItem('stark-player-name');
-    } catch {}
-    if (saved) {
-      setPlayerName(saved);
-      setShowName(false);
-      setPhase('home');
-      void wallet.ensure().catch(() => {});
-      return;
-    }
-    if (hint) setPlayerName(hint.slice(0, 12));
-    setShowName(true);
-    void wallet.ensure().catch(() => {});
+    setSetupBusy(true);
+    const uid = wallet.userId || accountId;
+    const progress = loadProgress(uid);
+    const saved = progress?.playerName || null;
+    void (async () => {
+      try {
+        await wallet.ensure().catch(() => null);
+        if (saved) {
+          setPlayerName(saved);
+          setShowName(false);
+          setPhase('home');
+        } else {
+          if (hint) setPlayerName(hint.slice(0, 12));
+          setShowName(true);
+        }
+      } finally {
+        setSetupBusy(false);
+      }
+    })();
   };
 
   const onNameSubmit = (name: string) => {
     const clean = name.slice(0, 12);
     setPlayerName(clean);
-    try {
-      const uid = wallet.userId;
-      if (uid) localStorage.setItem(nameKey(uid), clean);
-      localStorage.setItem('stark-player-name', clean);
-    } catch {}
     setShowName(false);
     setPhase('home');
-    setWelcomeName(name);
-    speakNarrator(`Welcome, ${name}. The Spire awaits.`, 2400);
+    setWelcomeName(clean);
+    speakNarrator(`Welcome, ${clean}. The Spire awaits.`, 2400);
     window.setTimeout(() => setWelcomeName(null), 2800);
     window.setTimeout(() => setShowFundPrompt(true), 900);
     void wallet.ensure().catch(() => {});
@@ -373,34 +383,50 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
 
   const doLogout = async () => {
     try {
-      // Privy logout is only available when configured — parent may pass via wallet
-      await (wallet as { logout?: () => Promise<void> }).logout?.();
-    } catch {}
-    // Keep name tied to user id so same email restores it next login
+      await wallet.logout?.();
+    } catch {
+      /* ignore */
+    }
     setShowName(false);
     setShowFundPrompt(false);
-    setShowSpireModal(false);
     setPhase('login');
     speakNarrator('Logged out.', 1400);
   };
 
-  const showLogin = phase === 'login' && !showName;
+  // Home only when authenticated and not mid-setup
+  const hasAccount = wallet.authenticated && !setupBusy;
+  const showLogin = phase === 'login' && !showName && !setupBusy;
   const showHome =
-    phase === 'home' && !showAchv && !showWorldSelect && !showSigils;
-  const showAchievements = phase === 'home' && showAchv;
-  const showWorlds = phase === 'home' && showWorldSelect;
+    hasAccount &&
+    phase === 'home' &&
+    !showAchv &&
+    !showWorldSelect &&
+    !showSigils;
+  const showAchievements = hasAccount && phase === 'home' && showAchv;
+  const showWorlds = hasAccount && phase === 'home' && showWorldSelect;
   const showGame =
-    phase === 'playing' ||
-    phase === 'paused' ||
-    phase === 'gameover' ||
-    phase === 'depthclear';
+    hasAccount &&
+    (phase === 'playing' ||
+      phase === 'paused' ||
+      phase === 'gameover' ||
+      phase === 'depthclear');
 
   return (
     <>
       <Splash hidden={splashGone} />
+
+      {setupBusy && (
+        <div className="setup-overlay" role="status" aria-live="polite">
+          <div className="setup-card">
+            <Mascot mood="idle" size={88} speech="Setting up your account…" />
+            <p className="setup-text">Restoring your progress</p>
+          </div>
+        </div>
+      )}
+
       <LoginPage show={showLogin} onContinue={afterAuth} />
       <NamePage
-        show={showName}
+        show={showName && wallet.authenticated && !setupBusy}
         initial={meta.playerName}
         onSubmit={onNameSubmit}
       />
@@ -422,6 +448,9 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
         onCopyWallet={() => {
           if (wallet.address) void navigator.clipboard?.writeText(wallet.address);
         }}
+        onRefreshBalance={() => {
+          void wallet.refreshBalance?.();
+        }}
         walletAddress={wallet.address}
         onLogout={() => void doLogout()}
         leaderboard={remoteLb}
@@ -439,12 +468,17 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
           setShowAchv(false);
           setShowSigils(true);
         }}
+        onOpenSettings={() => {
+          sndUI();
+          setShowSettings(true);
+        }}
       />
       <WorldSelectPage
         show={showWorlds}
         onBack={() => setShowWorldSelect(false)}
         onPlayLevel={onPlayLevel}
         guestLevelBest={meta.guestLevelBest}
+        guestClearedLevels={meta.guestClearedLevels}
       />
       <AchievementsPage
         show={showAchievements}
@@ -454,15 +488,17 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
         onRedeem={(id) => engine.redeemAchievement(id)}
       />
       <SigilsPage
-        show={phase === 'home' && showSigils}
+        show={hasAccount && phase === 'home' && showSigils}
         owned={meta.ownedSigils}
         isGuest={meta.isGuest}
         onBack={() => setShowSigils(false)}
       />
       <GamePage engine={engine} show={showGame} />
 
+      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+
       <FundPromptModal
-        open={showFundPrompt}
+        open={showFundPrompt && hasAccount}
         address={wallet.address}
         balanceHint={wallet.balanceHint}
         busy={wallet.busy}
@@ -470,29 +506,9 @@ function AppShell({ wallet }: { wallet: WalletApi }) {
           void wallet.ensure().catch(() => {});
         }}
         onRefreshBalance={() => {
-          void wallet.refreshBalance?.().catch(() => {});
+          void wallet.refreshBalance?.();
         }}
         onSkip={() => setShowFundPrompt(false)}
-      />
-
-      <SpireEntryModal
-        open={showSpireModal}
-        busy={spireBusy || wallet.busy}
-        error={spireError || wallet.error}
-        address={wallet.address}
-        balanceHint={wallet.balanceHint}
-        onEnsureWallet={() => {
-          void wallet.ensure().catch((e) => {
-            setSpireError((e as Error).message);
-          });
-        }}
-        onRefreshBalance={() => {
-          void wallet.refreshBalance?.().catch(() => {});
-        }}
-        onConfirm={() => void confirmSpireEntry()}
-        onCancel={() => {
-          if (!spireBusy) setShowSpireModal(false);
-        }}
       />
 
       {welcomeName && (

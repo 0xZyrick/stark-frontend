@@ -5,7 +5,8 @@
  * lives here as pure state transitions. Legacy DOM still paints in
  * parallel until Phase 3 swaps components in.
  */
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { loadProgress, saveProgress } from '../lib/accountStore';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   tierFromScore,
   objectiveForTier,
@@ -67,6 +68,7 @@ export type MetaState = {
   mainHighScore: number;
   /** Guest offline best per campaign level id */
   guestLevelBest: Record<string, number>;
+  guestClearedLevels: string[];
   /** Active campaign level id when in guest practice */
   activeLevelId: string | null;
   activeWorldId: string | null;
@@ -110,6 +112,7 @@ const defaultMeta = (): MetaState => ({
   highScore: 0,
   mainHighScore: 0,
   guestLevelBest: {},
+  guestClearedLevels: [],
   activeLevelId: null,
   activeWorldId: null,
   campaignObjective: null,
@@ -144,7 +147,7 @@ const defaultMeta = (): MetaState => ({
   unlock: null,
 });
 
-export function useGameEngine() {
+export function useGameEngine(accountId?: string | null) {
   const size0 = boardSizeForTier(0);
   const [board, setBoard] = useState<BoardState>(() =>
     createBoardState(size0.cols, size0.rows)
@@ -213,6 +216,46 @@ export function useGameEngine() {
       eventListeners.current.delete(fn);
     };
   }, []);
+
+
+  // Hydrate per-account progress (guest scores survive refresh)
+  useEffect(() => {
+    if (!accountId) return;
+    const saved = loadProgress(accountId);
+    if (!saved) return;
+    setMeta((m) => ({
+      ...m,
+      playerName: saved.playerName || m.playerName,
+      guestLevelBest: { ...saved.guestLevelBest },
+      guestClearedLevels: Array.isArray(saved.guestClearedLevels)
+        ? [...saved.guestClearedLevels]
+        : m.guestClearedLevels,
+      mainHighScore: saved.mainHighScore ?? m.mainHighScore,
+      shards: saved.shards ?? m.shards,
+      bestTierReached: saved.bestTierReached ?? m.bestTierReached,
+    }));
+  }, [accountId]);
+
+  // Persist when key progress fields change
+  useEffect(() => {
+    if (!accountId) return;
+    saveProgress(accountId, {
+      playerName: meta.playerName,
+      guestLevelBest: meta.guestLevelBest,
+      guestClearedLevels: meta.guestClearedLevels,
+      mainHighScore: meta.mainHighScore,
+      shards: meta.shards,
+      bestTierReached: meta.bestTierReached,
+    });
+  }, [
+    accountId,
+    meta.playerName,
+    meta.guestLevelBest,
+    meta.guestClearedLevels,
+    meta.mainHighScore,
+    meta.shards,
+    meta.bestTierReached,
+  ]);
 
   const setPhase = useCallback((phase: GamePhase) => {
     setMeta((m) => ({ ...m, phase, paused: phase === 'paused' }));
@@ -708,6 +751,16 @@ export function useGameEngine() {
     setMeta((m) => (m.unlock ? { ...m, unlock: null } : m));
   }, []);
 
+  const markGuestLevelCleared = useCallback((levelId: string) => {
+    setMeta((m) => {
+      if (m.guestClearedLevels.includes(levelId)) return m;
+      return {
+        ...m,
+        guestClearedLevels: [...m.guestClearedLevels, levelId],
+      };
+    });
+  }, []);
+
   return {
     board,
     meta,
@@ -751,6 +804,7 @@ export function useGameEngine() {
     continueDepth,
     clearChainFlash,
     dismissUnlock,
+    markGuestLevelCleared,
     checkAchievementsNow,
     setPlayerName,
     redeemAchievement,

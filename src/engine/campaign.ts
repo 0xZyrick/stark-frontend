@@ -281,3 +281,40 @@ export function nextLevelInWorld(levelId: string): CampaignLevel | undefined {
   }
   return undefined;
 }
+
+
+/** Flat ordered list of all campaign levels (world order × level order). */
+export function allCampaignLevels(): CampaignLevel[] {
+  return CAMPAIGN.flatMap((w) => w.levels);
+}
+
+/**
+ * Guest unlock rules:
+ * - outer-1 always open
+ * - a level unlocks when the previous level in campaign order is cleared
+ * - a world unlocks when the previous world's last level is cleared
+ */
+export function isGuestLevelUnlocked(
+  levelId: string,
+  cleared: string[] | Set<string>,
+): boolean {
+  const set = cleared instanceof Set ? cleared : new Set(cleared);
+  const levels = allCampaignLevels();
+  const idx = levels.findIndex((l) => l.id === levelId);
+  if (idx <= 0) return true; // first level always
+  if (idx < 0) return false;
+  return set.has(levels[idx - 1].id);
+}
+
+export function isGuestWorldUnlocked(
+  worldId: string,
+  cleared: string[] | Set<string>,
+): boolean {
+  const wi = CAMPAIGN.findIndex((w) => w.id === worldId);
+  if (wi <= 0) return true;
+  if (wi < 0) return false;
+  const prev = CAMPAIGN[wi - 1];
+  const last = prev.levels[prev.levels.length - 1];
+  const set = cleared instanceof Set ? cleared : new Set(cleared);
+  return set.has(last.id);
+}

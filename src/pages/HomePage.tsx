@@ -1,5 +1,5 @@
 /**
- * Home — identity header, scores, CTAs, main-only leaderboard.
+ * Home — identity header (name + wallet + balance + shards), scores, CTAs, leaderboard.
  */
 import { useState } from 'react';
 import type { RankTitle } from '../engine';
@@ -31,12 +31,14 @@ type HomePageProps = {
   walletBalance?: string | null;
   onCopyWallet?: () => void;
   onLogout?: () => void;
+  onRefreshBalance?: () => void;
   walletAddress?: string | null;
   spireBusy?: boolean;
   spireError?: string | null;
   onGuest: () => void;
   onAchievements?: () => void;
   onSigils?: () => void;
+  onOpenSettings?: () => void;
 };
 
 function worldMeta(id: string) {
@@ -59,12 +61,12 @@ export function HomePage({
   walletBalance,
   onCopyWallet,
   onLogout,
-  walletAddress,
-  spireBusy,
-  spireError,
+  onRefreshBalance,
   onGuest,
   onAchievements,
   onSigils,
+  onOpenSettings,
+  spireError,
 }: HomePageProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -92,12 +94,80 @@ export function HomePage({
             </div>
           </div>
         </div>
+
         <div className="home-header-right">
+          {walletShort && (
+            <div className="wallet-menu-wrap">
+              <button
+                type="button"
+                className="wallet-chip"
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <span className="wallet-chip-dot" />
+                <span>{walletShort}</span>
+                <span className="wallet-chip-caret">▾</span>
+              </button>
+              {menuOpen && (
+                <div className="wallet-menu">
+                  <button
+                    type="button"
+                    className="wallet-menu-item"
+                    onClick={() => {
+                      onCopyWallet?.();
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Copy address
+                  </button>
+                  <button
+                    type="button"
+                    className="wallet-menu-item wallet-menu-logout"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onLogout?.();
+                    }}
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="header-balance">
+            <span>{walletBalance ?? '—'}</span>
+            <button
+              type="button"
+              className="bal-refresh"
+              title="Refresh balance"
+              onClick={() => onRefreshBalance?.()}
+            >
+              ⟳
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="settings-gear"
+            title="Settings"
+            onClick={onOpenSettings}
+          >
+            ⚙
+          </button>
           <div className="hub-currency game-currency">
             <span className="gem">◆</span>
             <span>{shards}</span>
           </div>
         </div>
+      </div>
+
+      {/* Mascot top-left, not over leaderboard */}
+      <div className="home-mascot-corner" aria-hidden>
+        <Mascot
+          mood={mainHighScore <= 0 ? 'nudge' : 'idle'}
+          size={56}
+          speech={mainHighScore <= 0 ? 'Climb the Spire!' : null}
+        />
       </div>
 
       <div className="hub-content game-hub-content">
@@ -141,7 +211,7 @@ export function HomePage({
               type="button"
               onClick={onEnterSpire}
             >
-              Enter the Spire
+              Spire Mode
               <span className="game-btn-sub">~gas · ranked</span>
             </button>
             <button className="game-btn game-btn-secondary" type="button" onClick={onGuest}>
@@ -149,24 +219,8 @@ export function HomePage({
               <span className="game-btn-sub">Free to play</span>
             </button>
           </div>
+          {spireError && <p className="spire-inline-error">{spireError}</p>}
         </div>
-
-        <div className="home-account-under-lb">
-          {walletShort ? (
-            <>
-              <div className="acct-row">
-                <button
-                  type="button"
-                  className="wallet-chip acct-chip"
-                  onClick={() => setMenuOpen((v) => !v)}
-                >
-                  <span className="wallet-chip-dot" />
-                  <span>{walletShort}</span>
-                  <span className="wallet-chip-caret">▾</span>
-                </button>
-                <span className="acct-balance">{walletBalance ?? '…'}</span>
-              </div>
-
 
         <div className="home-lb-card game-panel" style={{ marginTop: 14 }}>
           <div className="home-lb-header">
@@ -204,49 +258,7 @@ export function HomePage({
               No ranked runs yet — settle a Spire run on-chain to appear here
             </div>
           )}
-          <div className="home-lb-mascot">
-            <Mascot
-              mood={mainHighScore <= 0 ? 'nudge' : 'idle'}
-              size={64}
-              speech={
-                mainHighScore <= 0
-                  ? 'Climb the Spire!'
-                  : 'See you on the board'
-              }
-            />
-          </div>
         </div>
-              {menuOpen && (
-                <div className="wallet-menu wallet-menu-inline">
-                  <button
-                    type="button"
-                    className="wallet-menu-item"
-                    onClick={() => {
-                      onCopyWallet?.();
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Copy address
-                  </button>
-                  <button
-                    type="button"
-                    className="wallet-menu-item wallet-menu-logout"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onLogout?.();
-                    }}
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-              {spireError && <p className="spire-inline-error">{spireError}</p>}
-            </>
-          ) : (
-            <p className="acct-hint">Log in to get a game wallet</p>
-          )}
-        </div>
-
       </div>
     </div>
   );

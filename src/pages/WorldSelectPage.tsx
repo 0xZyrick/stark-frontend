@@ -1,8 +1,14 @@
 /**
- * Guest practice world → level.
- * Mobile: sequential. Desktop: worlds left; levels right only after a world is clicked.
+ * Guest practice world → level with sequential locks.
+ * First-time: only Outer L1. Clear a level → unlock next. Clear a world → unlock next world L1.
  */
-import { CAMPAIGN, type CampaignWorld, type CampaignLevel } from '../engine';
+import {
+  CAMPAIGN,
+  isGuestLevelUnlocked,
+  isGuestWorldUnlocked,
+  type CampaignWorld,
+  type CampaignLevel,
+} from '../engine';
 import { useState, useEffect } from 'react';
 
 type Props = {
@@ -10,6 +16,7 @@ type Props = {
   onBack: () => void;
   onPlayLevel: (level: CampaignLevel) => void;
   guestLevelBest?: Record<string, number>;
+  guestClearedLevels?: string[];
 };
 
 export function WorldSelectPage({
@@ -17,9 +24,11 @@ export function WorldSelectPage({
   onBack,
   onPlayLevel,
   guestLevelBest = {},
+  guestClearedLevels = [],
 }: Props) {
   const [world, setWorld] = useState<CampaignWorld | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
+  const cleared = guestClearedLevels;
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 900px)');
@@ -37,21 +46,31 @@ export function WorldSelectPage({
 
   const worldList = (
     <div className="world-list">
-      {CAMPAIGN.map((w) => (
-        <button
-          key={w.id}
-          type="button"
-          className={`world-row${world?.id === w.id ? ' selected' : ''}`}
-          onClick={() => setWorld(w)}
-        >
-          <img className="world-row-img" src={w.iconSrc} alt="" width={40} height={40} />
-          <span className="world-row-body">
-            <span className="world-row-name">{w.name}</span>
-            <span className="world-row-tag">{w.tagline}</span>
-          </span>
-          <span className="world-row-meta">{w.levels.length}</span>
-        </button>
-      ))}
+      {CAMPAIGN.map((w) => {
+        const unlocked = isGuestWorldUnlocked(w.id, cleared);
+        return (
+          <button
+            key={w.id}
+            type="button"
+            className={`world-row${world?.id === w.id ? ' selected' : ''}${
+              unlocked ? '' : ' locked'
+            }`}
+            disabled={!unlocked}
+            onClick={() => unlocked && setWorld(w)}
+          >
+            <img className="world-row-img" src={w.iconSrc} alt="" width={40} height={40} />
+            <span className="world-row-body">
+              <span className="world-row-name">
+                {unlocked ? w.name : `🔒 ${w.name}`}
+              </span>
+              <span className="world-row-tag">
+                {unlocked ? w.tagline : 'Clear previous world to unlock'}
+              </span>
+            </span>
+            <span className="world-row-meta">{w.levels.length}</span>
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -59,21 +78,33 @@ export function WorldSelectPage({
     <div className="level-list">
       {world.levels.map((lv) => {
         const best = guestLevelBest[lv.id];
+        const unlocked = isGuestLevelUnlocked(lv.id, cleared);
+        const clearedLv = cleared.includes(lv.id);
         return (
           <button
             key={lv.id}
             type="button"
-            className="level-row"
-            onClick={() => onPlayLevel(lv)}
+            className={`level-row${unlocked ? '' : ' locked'}${
+              clearedLv ? ' cleared' : ''
+            }`}
+            disabled={!unlocked}
+            onClick={() => unlocked && onPlayLevel(lv)}
           >
-            <span className="level-row-num">L{lv.level}</span>
+            <span className="level-row-num">
+              {unlocked ? `L${lv.level}` : '🔒'}
+            </span>
             <span className="level-row-body">
               <span className="level-row-name">{lv.name}</span>
-              <span className="level-row-quest">{lv.objective.label}</span>
+              <span className="level-row-quest">
+                {unlocked ? lv.objective.label : 'Clear previous level'}
+              </span>
             </span>
             <span className="level-row-meta">
-              {lv.cols}×{lv.rows}
-              {best != null ? ` · best ${best}` : ''}
+              {unlocked
+                ? `${lv.cols}×${lv.rows}${
+                    best != null ? ` · best ${best}` : ''
+                  }${clearedLv ? ' · ✓' : ''}`
+                : 'Locked'}
             </span>
           </button>
         );
@@ -102,7 +133,7 @@ export function WorldSelectPage({
           <div className="guest-split">
             <div className="guest-split-left">
               <h1 className="select-title">Worlds</h1>
-              <p className="select-sub">Pick a world to see its levels</p>
+              <p className="select-sub">Clear levels in order to open the path</p>
               {worldList}
             </div>
             <div className="guest-split-right">
@@ -124,7 +155,7 @@ export function WorldSelectPage({
         ) : !world ? (
           <>
             <h1 className="select-title">Choose a world</h1>
-            <p className="select-sub">Offline only · beat your own best</p>
+            <p className="select-sub">Progress unlocks the next floor</p>
             {worldList}
           </>
         ) : (

@@ -14,7 +14,7 @@ type BeepOpts = {
 };
 
 let soundOn = true;
-let musicOn = false; // base music removed
+let musicOn = true;
 let musicEl: HTMLAudioElement | null = null;
 let audioCtx: AudioContext | null = null;
 
@@ -167,15 +167,18 @@ export function sndUI(): void {
   playSample('click', 0.4);
 }
 
+const MUSIC_VOLUME = 0.12; // quiet background bed
+
 export function startMusic(): void {
-  return; // base music removed entirely
   if (!soundOn || !musicOn) return;
   try {
     if (!musicEl) {
       musicEl = new Audio(MUSIC_SRC);
       musicEl.loop = true;
       musicEl.preload = 'auto';
-      musicEl.volume = 0.224; // ~20% lower than prior 0.28
+      musicEl.volume = MUSIC_VOLUME;
+    } else {
+      musicEl.volume = MUSIC_VOLUME;
     }
     void musicEl.play().catch(() => {});
   } catch {
@@ -210,20 +213,27 @@ export function resumeMusic(): void {
   void musicEl.play().catch(() => {});
 }
 
-export function setMusicIntensity(tier: number): void {
+export function setMusicIntensity(_tier: number): void {
+  // Keep bed quiet — no intensity ramp drowning SFX
   if (!musicEl) return;
-  musicEl.volume = Math.min(0.34, 0.18 + Math.min(tier, 8) * 0.015);
+  musicEl.volume = MUSIC_VOLUME;
+}
+
+export function setMusicVolume(v: number): void {
+  if (musicEl) musicEl.volume = Math.max(0, Math.min(0.35, v));
 }
 
 export function setSoundOn(on: boolean): void {
   soundOn = on;
   if (!on) stopMusic();
   else if (musicOn) startMusic();
+  persistAudioPrefs();
 }
 export function setMusicOn(on: boolean): void {
   musicOn = on;
   if (on && soundOn) startMusic();
   else stopMusic();
+  persistAudioPrefs();
 }
 export function isSoundOn(): boolean {
   return soundOn;
@@ -270,7 +280,32 @@ export function sndLose(): void {
   setTimeout(() => playSample('whoosh', 0.2), 100);
 }
 
+function loadAudioPrefs(): void {
+  try {
+    const s = localStorage.getItem('stark-audio');
+    if (!s) return;
+    const j = JSON.parse(s) as { soundOn?: boolean; musicOn?: boolean };
+    if (typeof j.soundOn === 'boolean') soundOn = j.soundOn;
+    if (typeof j.musicOn === 'boolean') musicOn = j.musicOn;
+  } catch {
+    /* ignore */
+  }
+}
+
+export function persistAudioPrefs(): void {
+  try {
+    localStorage.setItem(
+      'stark-audio',
+      JSON.stringify({ soundOn, musicOn }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+loadAudioPrefs();
+
 export function unlockAudio(): void {
   ensureAudio();
-  // no base music
+  if (musicOn && soundOn) startMusic();
 }
