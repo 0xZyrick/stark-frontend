@@ -154,6 +154,8 @@ export function GamePage({ engine, show }: GamePageProps) {
     <div
       className={`page game-page world-${world.id}${show ? ' show' : ''}`}
       id="gamePage"
+      style={{ display: show ? 'flex' : 'none' }}
+      aria-hidden={!show}
     >
       <div className="game-bg" id="gameBg">
         <img

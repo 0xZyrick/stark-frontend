@@ -192,7 +192,10 @@ function AppShell({
         if (savedName) {
           setPlayerName(savedName);
           setShowName(false);
-          setPhase('home');
+          setShowWorldSelect(false);
+          setShowAchv(false);
+          setShowSigils(false);
+          setPhase('home'); // always hub after refresh — never a stuck board
         } else {
           setShowName(true);
           setPhase('login');
@@ -250,6 +253,9 @@ function AppShell({
       phase === 'depthclear';
     document.body.classList.toggle('in-game', inGame);
     document.body.classList.toggle('guest-account', meta.isGuest);
+    // Extra safety: if a hub nav node exists, hide while in-run
+    const nav = document.getElementById('bottomNav');
+    if (nav) nav.style.display = inGame ? 'none' : '';
   }, [phase, meta.isGuest]);
 
   useEffect(() => {
@@ -517,7 +523,7 @@ function AppShell({
         </div>
       )}
 
-      {showHome && (
+      {showHome && phase === 'home' && (
         <nav className="bottom-nav game-bottom-nav" id="bottomNav">
           <div className="bottom-nav-inner">
             <button className="nav-btn active" type="button">

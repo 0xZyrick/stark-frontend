@@ -1754,7 +1754,9 @@
     pointer-events:none;
     display:flex; justify-content:center;
   }
-  body.in-game .bottom-nav{ display:none !important; }
+  body.in-game .bottom-nav,
+  body.in-game .game-bottom-nav,
+  body.in-game #bottomNav{ display:none !important; visibility:hidden !important; }
   .bottom-nav-inner{
     pointer-events:auto;
     display:flex; align-items:center; justify-content:space-around; gap:4px;
@@ -3264,6 +3266,9 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   align-items: center !important;
   gap: 12px;
   padding: 14px 18px 6px !important;
+  position: relative;
+  z-index: 250;
+  overflow: visible;
 }
 .home-main-card{
   margin-top: 8px;
@@ -3824,7 +3829,7 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   display: block;
   filter: drop-shadow(0 8px 16px rgba(255, 159, 28, 0.35));
 }
-.wallet-menu-wrap { position: relative; }
+.wallet-menu-wrap { position: relative; z-index: 300; }
 .wallet-chip-caret {
   font-size: 10px;
   opacity: 0.75;
@@ -3839,7 +3844,7 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   border-radius: 12px;
   background: rgba(12, 14, 22, 0.98);
   box-shadow: 0 12px 32px rgba(0,0,0,0.55);
-  z-index: 50;
+  z-index: 400;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -3975,53 +3980,45 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.35);
 }
 
-/* Mobile board: more vertical room, centered, less top-cramped */
+/* Mobile board: center without breaking col×cell width math */
 @media (max-width: 520px) {
   .game-page {
-    display: flex;
-    flex-direction: column;
-    min-height: 100dvh;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    justify-content: flex-start;
+    align-items: center;
+    /* room for bottom action rail only — no huge right gutter */
+    padding: 8px 12px calc(96px + env(safe-area-inset-bottom)) 12px !important;
   }
-  .game-page .game-header,
-  .game-page .hud,
-  .game-page #gameHeader {
-    flex-shrink: 0;
-    padding-top: 6px;
-    margin-bottom: 4px;
-  }
-  .game-page .game-stage,
-  .game-page .board-stage,
-  .game-page .play-area {
+  .game-page .board-stage {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    width: 100%;
     min-height: 0;
-    padding: 8px 10px 12px;
   }
+  /* NEVER override width with 100%/92vw — that leaves fixed --cell cols stuck left */
   .board-wrap {
-    width: min(100%, 92vw) !important;
-    max-width: 420px;
     margin-left: auto !important;
     margin-right: auto !important;
-    margin-top: 0 !important;
+    margin-top: 8px !important;
     margin-bottom: 8px !important;
+    max-width: 100%;
   }
   .board-wrap .columns {
-    gap: 6px;
-  }
-  .side-dock-right,
-  .side-dock {
-    flex-shrink: 0;
-  }
-  /* slight side breathing room for columns */
-  .board-wrap .column {
-    flex: 1 1 0;
-    min-width: 0;
+    justify-content: center;
   }
 }
+
+/* Hard hide hub nav during any in-run phase */
+body.in-game .bottom-nav,
+body.in-game .game-bottom-nav,
+body.in-game #bottomNav {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 
 .settings-gear {
   border: none;
@@ -4063,4 +4060,17 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
 .settings-toggle.on {
   background: rgba(255,159,28,0.25);
   color: var(--gold, #ff9f1c);
+}
+
+.home-lb-card {
+  position: relative;
+  z-index: 1;
+}
+.home-hero-card {
+  position: relative;
+  z-index: 1;
+}
+.game-hub-header.home-topbar {
+  z-index: 250;
+  overflow: visible !important;
 }
