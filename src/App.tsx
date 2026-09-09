@@ -28,6 +28,7 @@ import { isPrivyConfigured } from './privy';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSpireWallet } from './starknet/useSpireWallet';
 import { loadProgress } from './lib/accountStore';
+import { Analytics } from '@vercel/analytics/react';
 
 type WalletApi = {
   ready: boolean;
@@ -554,6 +555,10 @@ function AppShell({
 }
 
 export default function App() {
-  if (isPrivyConfigured()) return <AppWithWallet />;
-  return <AppWithoutWallet />;
+  return (
+    <>
+      {isPrivyConfigured() ? <AppWithWallet /> : <AppWithoutWallet />}
+      <Analytics />
+    </>
+  );
 }
