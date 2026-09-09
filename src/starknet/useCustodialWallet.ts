@@ -28,10 +28,11 @@ export function useCustodialWallet() {
       const token = await getAccessToken();
       if (!token) return;
       const bal = await fetchWalletBalance(token);
-      setBalanceHint(bal.display);
+      setBalanceHint(bal.display || '0 STRK');
       if (bal.address) setAddress(bal.address);
-    } catch {
-      /* ignore */
+    } catch (e) {
+      console.warn('[balance]', e);
+      setBalanceHint((prev) => prev || '—');
     }
   }, [getAccessToken]);
 

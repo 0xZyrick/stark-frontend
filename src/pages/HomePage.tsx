@@ -73,30 +73,46 @@ export function HomePage({
   return (
     <div className={`page hub-page game-hub${show ? ' show' : ''}`} id="homePage">
       <div className="hub-header game-hub-header home-topbar">
-        <div className="hub-player-chip">
-          <img
-            className="hub-avatar"
-            src="/images/mascot/orb.png"
-            alt=""
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
-          />
-          <div>
-            <div className="hub-player-name">{playerName}</div>
-            <div className="hub-rank" style={{ color: rank.color }}>
-              {rank.iconSrc ? (
-                <img src={rank.iconSrc} alt="" width={14} height={14} />
-              ) : (
-                rank.icon
-              )}{' '}
-              {rank.name}
+        <div className="home-topbar-row home-topbar-main">
+          <div className="hub-player-chip">
+            <img
+              className="hub-avatar"
+              src="/images/mascot/orb.png"
+              alt=""
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+            <div>
+              <div className="hub-player-name">{playerName}</div>
+              <div className="hub-rank" style={{ color: rank.color }}>
+                {rank.iconSrc ? (
+                  <img src={rank.iconSrc} alt="" width={14} height={14} />
+                ) : (
+                  rank.icon
+                )}{' '}
+                {rank.name}
+              </div>
+            </div>
+          </div>
+          <div className="home-topbar-end">
+            <button
+              type="button"
+              className="settings-gear"
+              title="Settings"
+              onClick={onOpenSettings}
+            >
+              ⚙
+            </button>
+            <div className="hub-currency game-currency">
+              <span className="gem">◆</span>
+              <span>{shards}</span>
             </div>
           </div>
         </div>
 
-        <div className="home-header-right">
-          {walletShort && (
+        <div className="home-topbar-row home-topbar-wallet">
+          {walletShort ? (
             <div className="wallet-menu-wrap">
               <button
                 type="button"
@@ -104,7 +120,7 @@ export function HomePage({
                 onClick={() => setMenuOpen((v) => !v)}
               >
                 <span className="wallet-chip-dot" />
-                <span>{walletShort}</span>
+                <span className="wallet-chip-addr">{walletShort}</span>
                 <span className="wallet-chip-caret">▾</span>
               </button>
               {menuOpen && (
@@ -132,8 +148,9 @@ export function HomePage({
                 </div>
               )}
             </div>
+          ) : (
+            <span className="acct-hint">No wallet yet</span>
           )}
-
           <div className="header-balance">
             <span>{walletBalance ?? '—'}</span>
             <button
@@ -144,19 +161,6 @@ export function HomePage({
             >
               ⟳
             </button>
-          </div>
-
-          <button
-            type="button"
-            className="settings-gear"
-            title="Settings"
-            onClick={onOpenSettings}
-          >
-            ⚙
-          </button>
-          <div className="hub-currency game-currency">
-            <span className="gem">◆</span>
-            <span>{shards}</span>
           </div>
         </div>
       </div>

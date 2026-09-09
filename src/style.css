@@ -4074,3 +4074,67 @@ body.in-game #bottomNav {
   z-index: 250;
   overflow: visible !important;
 }
+
+/* Home header: two rows on mobile so it does not cluster */
+.home-topbar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  padding: 12px 14px 8px !important;
+  position: relative;
+  z-index: 250;
+  overflow: visible;
+}
+.home-topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.home-topbar-end {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.home-topbar-wallet {
+  padding: 6px 8px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.22);
+}
+.home-topbar-wallet .wallet-menu-wrap {
+  min-width: 0;
+  flex: 1;
+}
+.home-topbar-wallet .wallet-chip {
+  max-width: 100%;
+}
+.wallet-chip-addr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 42vw;
+}
+@media (min-width: 721px) {
+  .home-topbar {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center !important;
+  }
+  .home-topbar-row {
+    width: auto;
+  }
+  .home-topbar-main {
+    flex: 1;
+  }
+  .home-topbar-wallet {
+    background: transparent;
+    padding: 0;
+    gap: 10px;
+  }
+  .wallet-chip-addr {
+    max-width: 120px;
+  }
+}
