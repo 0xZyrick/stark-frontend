@@ -15,7 +15,7 @@ import { GamePage } from './pages/GamePage';
 import { FundPromptModal } from './components/FundPromptModal';
 import { SettingsModal } from './components/SettingsModal';
 import { Mascot } from './components/Mascot';
-import { sndUI, unlockAudio } from './audio/sound';
+import { sndUI, unlockAudio, pauseMusic, resumeMusic } from './audio/sound';
 import {
   speakNarrator,
   setNarratorListener,
@@ -256,6 +256,9 @@ function AppShell({
     // Extra safety: if a hub nav node exists, hide while in-run
     const nav = document.getElementById('bottomNav');
     if (nav) nav.style.display = inGame ? 'none' : '';
+    // Soft bed: pause in gameplay, resume on hub
+    if (inGame) pauseMusic();
+    else resumeMusic();
   }, [phase, meta.isGuest]);
 
   useEffect(() => {
