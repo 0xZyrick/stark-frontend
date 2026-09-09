@@ -4138,3 +4138,49 @@ body.in-game #bottomNav {
     max-width: 120px;
   }
 }
+
+.game-btn.spire-soon:disabled,
+.game-btn.spire-soon {
+  opacity: 0.72;
+  cursor: not-allowed;
+  filter: saturate(0.75);
+}
+.settings-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 12px;
+  text-align: left;
+}
+.settings-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-dim);
+}
+.settings-name-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.settings-name-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.28);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.settings-save-name {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  background: rgba(255,159,28,0.22);
+  color: var(--gold, #ff9f1c);
+  flex-shrink: 0;
+}

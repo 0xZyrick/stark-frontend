@@ -211,12 +211,13 @@ export function HomePage({
 
           <div className="home-cta-block">
             <button
-              className="game-btn game-btn-primary"
+              className="game-btn game-btn-primary spire-soon"
               type="button"
-              onClick={onEnterSpire}
+              disabled
+              title="Spire Mode coming soon"
             >
               Spire Mode
-              <span className="game-btn-sub">~gas · ranked</span>
+              <span className="game-btn-sub">Coming soon</span>
             </button>
             <button className="game-btn game-btn-secondary" type="button" onClick={onGuest}>
               Guest Mode

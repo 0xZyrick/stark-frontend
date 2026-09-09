@@ -28,7 +28,6 @@ import { isPrivyConfigured } from './privy';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSpireWallet } from './starknet/useSpireWallet';
 import { loadProgress } from './lib/accountStore';
-import { Analytics } from '@vercel/analytics/react';
 
 type WalletApi = {
   ready: boolean;
@@ -502,7 +501,15 @@ function AppShell({
       />
       <GamePage engine={engine} show={showGame} />
 
-      <SettingsModal open={showSettings} onClose={() => setShowSettings(false)} />
+      <SettingsModal
+        open={showSettings}
+        onClose={() => setShowSettings(false)}
+        playerName={meta.playerName}
+        onSaveName={(name) => {
+          setPlayerName(name);
+          speakNarrator(`You're ${name} now.`, 1400);
+        }}
+      />
 
       <FundPromptModal
         open={showFundPrompt && hasAccount}
@@ -555,10 +562,6 @@ function AppShell({
 }
 
 export default function App() {
-  return (
-    <>
-      {isPrivyConfigured() ? <AppWithWallet /> : <AppWithoutWallet />}
-      <Analytics />
-    </>
-  );
+  if (isPrivyConfigured()) return <AppWithWallet />;
+  return <AppWithoutWallet />;
 }
