@@ -1,7 +1,6 @@
 /**
  * Home — identity header (name + wallet + balance + shards), scores, CTAs, leaderboard.
  */
-import { useState } from 'react';
 import type { RankTitle } from '../engine';
 import { CAMPAIGN } from '../engine';
 import { Mascot } from '../components/Mascot';
@@ -68,8 +67,6 @@ export function HomePage({
   onOpenSettings,
   spireError,
 }: HomePageProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
     <div className={`page hub-page game-hub${show ? ' show' : ''}`} id="homePage">
       <div className="hub-header game-hub-header home-topbar">
@@ -108,59 +105,6 @@ export function HomePage({
               <span className="gem">◆</span>
               <span>{shards}</span>
             </div>
-          </div>
-        </div>
-
-        <div className="home-topbar-row home-topbar-wallet">
-          {walletShort ? (
-            <div className="wallet-menu-wrap">
-              <button
-                type="button"
-                className="wallet-chip"
-                onClick={() => setMenuOpen((v) => !v)}
-              >
-                <span className="wallet-chip-dot" />
-                <span className="wallet-chip-addr">{walletShort}</span>
-                <span className="wallet-chip-caret">▾</span>
-              </button>
-              {menuOpen && (
-                <div className="wallet-menu">
-                  <button
-                    type="button"
-                    className="wallet-menu-item"
-                    onClick={() => {
-                      onCopyWallet?.();
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Copy address
-                  </button>
-                  <button
-                    type="button"
-                    className="wallet-menu-item wallet-menu-logout"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onLogout?.();
-                    }}
-                  >
-                    Log out
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <span className="acct-hint">No wallet yet</span>
-          )}
-          <div className="header-balance">
-            <span>{walletBalance ?? '—'}</span>
-            <button
-              type="button"
-              className="bal-refresh"
-              title="Refresh balance"
-              onClick={() => onRefreshBalance?.()}
-            >
-              ⟳
-            </button>
           </div>
         </div>
       </div>

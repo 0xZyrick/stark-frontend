@@ -15,6 +15,7 @@ type BeepOpts = {
 
 let soundOn = true;
 let musicOn = true;
+let musicSuspended = false; // true while in gameplay
 let musicEl: HTMLAudioElement | null = null;
 let audioCtx: AudioContext | null = null;
 
@@ -170,7 +171,7 @@ export function sndUI(): void {
 const MUSIC_VOLUME = 0.12; // quiet background bed
 
 export function startMusic(): void {
-  if (!soundOn || !musicOn) return;
+  if (!soundOn || !musicOn || musicSuspended) return;
   try {
     if (!musicEl) {
       musicEl = new Audio(MUSIC_SRC);
@@ -199,6 +200,7 @@ export function stopMusic(): void {
 
 /** Pause loop without resetting position (resume in hub). */
 export function pauseMusic(): void {
+  musicSuspended = true;
   if (musicEl) {
     try {
       musicEl.pause();
@@ -209,8 +211,9 @@ export function pauseMusic(): void {
 }
 
 export function resumeMusic(): void {
-  if (!soundOn || !musicOn || !musicEl) return;
-  void musicEl.play().catch(() => {});
+  musicSuspended = false;
+  if (!soundOn || !musicOn) return;
+  startMusic();
 }
 
 export function setMusicIntensity(_tier: number): void {
@@ -231,8 +234,8 @@ export function setSoundOn(on: boolean): void {
 }
 export function setMusicOn(on: boolean): void {
   musicOn = on;
-  if (on && soundOn) startMusic();
-  else stopMusic();
+  if (on && soundOn && !musicSuspended) startMusic();
+  else if (!on) stopMusic();
   persistAudioPrefs();
 }
 export function isSoundOn(): boolean {
@@ -307,5 +310,6 @@ loadAudioPrefs();
 
 export function unlockAudio(): void {
   ensureAudio();
-  if (musicOn && soundOn) startMusic();
+  // Do not restart BGM if gameplay suspended it
+  if (musicOn && soundOn && !musicSuspended) startMusic();
 }

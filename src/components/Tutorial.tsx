@@ -107,7 +107,18 @@ export function Tutorial({ active, onDone }: Props) {
           height: spot.height,
         }}
       />
-      <div className="coach-bubble coach-bubble-mascot">
+      <div
+        className="coach-bubble coach-bubble-mascot"
+        style={{
+          position: 'fixed',
+          left: '50%',
+          top: '45%',
+          transform: 'translate(-50%, -50%)',
+          bottom: 'auto',
+          zIndex: 13001,
+          width: 'min(92vw, 360px)',
+        }}
+      >
         <div className="coach-mascot-edge">
           <Mascot mood="idle" size={56} speech={null} />
         </div>

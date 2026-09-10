@@ -17,7 +17,7 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
       config={{
         loginMethods: ['google', 'email', 'wallet'],
         appearance: { theme: 'dark', accentColor: '#ff9f1c' },
-        embeddedWallets: { createOnLogin: 'users-without-wallets' },
+        embeddedWallets: { createOnLogin: 'off' },
         defaultChain: sepolia,
       }}
     >

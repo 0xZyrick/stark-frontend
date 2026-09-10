@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
 import { PrivyProvider as PrivyProviderBase } from '@privy-io/react-auth';
-import { sepolia } from 'viem/chains';
 
 const APP_ID = (import.meta.env.VITE_PRIVY_APP_ID as string | undefined)?.trim() || '';
 
+/**
+ * Identity only — no embedded wallet creation on login.
+ * Spire will use Argent/Braavos later; Privy is name + stable user id.
+ */
 export function PrivyProvider({ children }: { children: ReactNode }) {
   if (!APP_ID) {
     return <>{children}</>;
@@ -13,15 +16,15 @@ export function PrivyProvider({ children }: { children: ReactNode }) {
     <PrivyProviderBase
       appId={APP_ID}
       config={{
-        loginMethods: ['google', 'email', 'wallet'],
+        loginMethods: ['google', 'email'],
         appearance: {
           theme: 'dark',
           accentColor: '#ff9f1c',
         },
+        // Critical: do not init embedded wallets (causes /embedded_wallets/init timeouts)
         embeddedWallets: {
-          createOnLogin: 'users-without-wallets',
+          createOnLogin: 'off',
         },
-        defaultChain: sepolia,
       }}
     >
       {children}

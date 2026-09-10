@@ -3052,8 +3052,11 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
 .coach-overlay {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 12000;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .coach-spot {
   position: fixed;
@@ -3066,11 +3069,11 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
 .coach-bubble {
   position: fixed;
   left: 50%;
-  top: auto;
-  bottom: max(120px, calc(16px + env(safe-area-inset-bottom)));
-  transform: translateX(-50%);
+  top: 50%;
+  bottom: auto;
+  transform: translate(-50%, -50%);
   width: min(92vw, 360px);
-  max-height: min(40vh, 280px);
+  max-height: min(70vh, 420px);
   overflow: auto;
   padding: 16px 18px;
   border-radius: 18px;
@@ -3090,8 +3093,9 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
 }
 @media (max-height: 700px) {
   .coach-bubble {
-    bottom: 72px;
-    max-height: 36vh;
+    top: 50%;
+    bottom: auto;
+    max-height: 60vh;
   }
 }
 .coach-actions {
@@ -3569,15 +3573,18 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   }
 }
 
-/* Board-edge mascot (not floating in empty void) */
+/* Mascot in normal flow BELOW the board (visible, not behind, not on orbs) */
 .mascot-board-anchor {
-  position: absolute;
-  right: -4px;
-  bottom: 8px;
-  z-index: 6;
+  position: relative;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  transform: none;
+  z-index: 1;
   pointer-events: none;
-  /* sit on board frame, not thin air */
-  transform: translateX(42%);
+  width: max-content;
+  margin: 10px auto 0;
+  flex-shrink: 0;
 }
 .game-page .board-wrap {
   position: relative;
@@ -3668,24 +3675,14 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
 .board-stage {
   position: relative;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
   width: 100%;
   max-width: 100%;
+  gap: 4px;
 }
-.mascot-board-anchor {
-  position: absolute;
-  right: max(0px, calc(50% - 150px - 36px));
-  bottom: 12px;
-  z-index: 6;
-  pointer-events: none;
-  transform: none;
-}
-@media (min-width: 700px) {
-  .mascot-board-anchor {
-    right: max(8px, calc(50% - 170px - 40px));
-    bottom: 16px;
-  }
-}
+
 
 .login-stub-hint {
   margin-top: 8px;

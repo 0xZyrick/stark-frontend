@@ -221,7 +221,7 @@ export function GamePage({ engine, show }: GamePageProps) {
           <div className="mascot-board-anchor" aria-live="polite">
             <Mascot
               mood={meta.chainFlash >= 2 ? 'cheer' : 'idle'}
-              size={64}
+              size={52}
               spin={meta.chainFlash >= 3}
               speech={
                 meta.chainFlash >= 2
