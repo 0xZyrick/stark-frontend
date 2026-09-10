@@ -168,6 +168,18 @@ export function sndUI(): void {
   playSample('click', 0.4);
 }
 
+/** Soft player-card unveil — quiet trail, not a fanfare */
+export function sndCardReveal(): void {
+  playSample('whoosh', 0.16);
+  setTimeout(() => playSample('pop', 0.18), 180);
+  setTimeout(() => playSample('success', 0.2), 420);
+  setTimeout(() => playSample('levelup', 0.16), 720);
+}
+export function sndCardTick(): void {
+  playSample('click', 0.22);
+}
+
+
 const MUSIC_VOLUME = 0.12; // quiet background bed
 
 export function startMusic(): void {

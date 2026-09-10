@@ -5,7 +5,7 @@
  * lives here as pure state transitions. Legacy DOM still paints in
  * parallel until Phase 3 swaps components in.
  */
-import { loadProgress, saveProgress, effectiveDailyBest, nextDailyBest, todayKey } from '../lib/accountStore';
+import { loadProgress, saveProgress, effectiveDailyBest, nextDailyBest, todayKey, readPlayerName, savePlayerName } from '../lib/accountStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   tierFromScore,
@@ -226,27 +226,46 @@ export function useGameEngine(accountId?: string | null) {
   useEffect(() => {
     if (!accountId) return;
     const saved = loadProgress(accountId);
-    if (!saved) return;
+    const name = readPlayerName(accountId) || saved?.playerName;
+    const guestBestFromLevels = saved
+      ? Math.max(0, ...Object.values(saved.guestLevelBest || { 0: 0 }))
+      : 0;
     setMeta((m) => ({
       ...m,
-      playerName: saved.playerName || m.playerName,
-      guestLevelBest: { ...saved.guestLevelBest },
-      guestClearedLevels: Array.isArray(saved.guestClearedLevels)
-        ? [...saved.guestClearedLevels]
-        : m.guestClearedLevels,
-      mainHighScore: saved.mainHighScore ?? m.mainHighScore,
+      playerName:
+        name && name.toLowerCase() !== 'player' ? name : m.playerName,
+      guestLevelBest: saved ? { ...saved.guestLevelBest } : m.guestLevelBest,
+      guestClearedLevels:
+        saved && Array.isArray(saved.guestClearedLevels)
+          ? [...saved.guestClearedLevels]
+          : m.guestClearedLevels,
+      highScore: Math.max(m.highScore, guestBestFromLevels),
+      mainHighScore: saved?.mainHighScore ?? m.mainHighScore,
       dailyBest: effectiveDailyBest(saved),
-      dailyBestDate: saved.dailyBestDate === todayKey() ? saved.dailyBestDate : todayKey(),
-      shards: saved.shards ?? m.shards,
-      bestTierReached: saved.bestTierReached ?? m.bestTierReached,
+      dailyBestDate:
+        saved?.dailyBestDate === todayKey() ? saved.dailyBestDate : todayKey(),
+      shards: saved?.shards ?? m.shards,
+      bestTierReached: saved?.bestTierReached ?? m.bestTierReached,
     }));
   }, [accountId]);
+
+  // Sync all-time guest high from per-level bests
+  useEffect(() => {
+    const peak = Math.max(0, ...Object.values(meta.guestLevelBest || { 0: 0 }));
+    if (peak > 0) {
+      setMeta((m) => (m.highScore >= peak ? m : { ...m, highScore: peak }));
+    }
+  }, [meta.guestLevelBest]);
 
   // Persist when key progress fields change
   useEffect(() => {
     if (!accountId) return;
+    const name =
+      meta.playerName && meta.playerName.toLowerCase() !== 'player'
+        ? meta.playerName
+        : readPlayerName(accountId) || meta.playerName;
     saveProgress(accountId, {
-      playerName: meta.playerName,
+      playerName: name,
       guestLevelBest: meta.guestLevelBest,
       guestClearedLevels: meta.guestClearedLevels,
       mainHighScore: meta.mainHighScore,
@@ -255,12 +274,15 @@ export function useGameEngine(accountId?: string | null) {
       shards: meta.shards,
       bestTierReached: meta.bestTierReached,
     });
+    if (name && name.toLowerCase() !== 'player') savePlayerName(accountId, name);
   }, [
     accountId,
     meta.playerName,
     meta.guestLevelBest,
     meta.guestClearedLevels,
     meta.mainHighScore,
+    meta.dailyBest,
+    meta.dailyBestDate,
     meta.shards,
     meta.bestTierReached,
   ]);
@@ -715,8 +737,10 @@ export function useGameEngine(accountId?: string | null) {
   }, []);
 
   const setPlayerName = useCallback((name: string) => {
-    setMeta((m) => ({ ...m, playerName: name.slice(0, 12) || 'Player' }));
-  }, []);
+    const clean = (name || '').trim().slice(0, 12) || 'Player';
+    setMeta((m) => ({ ...m, playerName: clean }));
+    if (clean.toLowerCase() !== 'player') savePlayerName(accountId, clean);
+  }, [accountId]);
 
   const equipSkin = useCallback((id: SkinId) => {
     setMeta((m) => {

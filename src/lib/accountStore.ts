@@ -101,3 +101,36 @@ export function nextDailyBest(saved: SavedProgress | null | undefined, score: nu
   const prev = saved && saved.dailyBestDate === day ? saved.dailyBest || 0 : 0;
   return { dailyBest: Math.max(prev, score), dailyBestDate: day };
 }
+
+
+/** Always write name under user id + a last-known fallback (survives id hiccups). */
+export function savePlayerName(userId: string | null | undefined, name: string): void {
+  const clean = name.trim().slice(0, 12);
+  if (!clean || clean.toLowerCase() === 'player') return;
+  try {
+    localStorage.setItem('stark-player-name:last', clean);
+    if (userId) {
+      localStorage.setItem(`stark-player-name:${userId}`, clean);
+      const prev = loadProgress(userId);
+      saveProgress(userId, { ...(prev || {}), playerName: clean });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readPlayerName(userId: string | null | undefined): string | null {
+  try {
+    if (userId) {
+      const fromProgress = loadProgress(userId)?.playerName;
+      if (fromProgress && fromProgress.toLowerCase() !== 'player') return fromProgress;
+      const keyed = localStorage.getItem(`stark-player-name:${userId}`);
+      if (keyed && keyed.toLowerCase() !== 'player') return keyed;
+    }
+    const last = localStorage.getItem('stark-player-name:last');
+    if (last && last.toLowerCase() !== 'player') return last;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}

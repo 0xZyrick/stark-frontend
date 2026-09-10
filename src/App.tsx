@@ -29,7 +29,7 @@ import { fetchLeaderboard } from './privy/api';
 import { isPrivyConfigured } from './privy';
 import { usePrivy } from '@privy-io/react-auth';
 import { useSpireWallet } from './starknet/useSpireWallet';
-import { loadProgress } from './lib/accountStore';
+import { loadProgress, readPlayerName, savePlayerName } from './lib/accountStore';
 
 type WalletApi = {
   ready: boolean;
@@ -185,10 +185,7 @@ function AppShell({
     // Authenticated — restore account
     setSetupBusy(true);
     const uid = wallet.userId || accountId;
-    const progress = loadProgress(uid);
-    const savedName =
-      progress?.playerName ||
-      (uid ? localStorage.getItem(`stark-player-name:${uid}`) : null);
+    const savedName = readPlayerName(uid);
 
     void (async () => {
       try {
@@ -531,7 +528,10 @@ function AppShell({
         rankColor={rank.color}
         rankIcon={rank.iconSrc}
         mainBest={meta.mainHighScore}
-        guestBest={meta.highScore}
+        guestBest={Math.max(
+          meta.highScore,
+          ...Object.values(meta.guestLevelBest || { 0: 0 }),
+        )}
         dailyBest={meta.dailyBest}
         shards={meta.shards}
         sigilCount={meta.ownedSigils?.size ?? 0}

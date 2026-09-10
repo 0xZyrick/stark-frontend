@@ -226,7 +226,9 @@ export function GamePage({ engine, show }: GamePageProps) {
               speech={
                 meta.chainFlash >= 2
                   ? speechForChain(meta.chainFlash)
-                  : idleTip(tipTick)
+                  : tipTick % 5 === 0
+                    ? `${meta.playerName || 'Player'}, so amazing`
+                    : idleTip(tipTick)
               }
             />
           </div>
