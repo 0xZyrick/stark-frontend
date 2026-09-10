@@ -4206,19 +4206,7 @@ body.in-game #bottomNav {
   flex-shrink: 0;
 }
 
-.score-tracks {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-@media (max-width: 520px) {
-  .score-tracks {
-    grid-template-columns: 1fr;
-  }
-}
-.score-track-daily .st-value {
-  color: var(--gold, #ff9f1c);
-}
+/* score-tracks stays 2-col from base rule — no daily column */
 
 .tile.orb-crown {
   overflow: hidden;
@@ -4426,4 +4414,119 @@ body.in-game #bottomNav {
 @keyframes pcRing {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* ——— Player card: craft → sealed back → flip ——— */
+.player-card-craft {
+  text-align: center;
+  padding: 28px 20px;
+  min-width: 220px;
+}
+.player-card-craft-text {
+  margin: 12px 0 14px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.player-card-craft-bar {
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  max-width: 160px;
+  margin: 0 auto;
+}
+.player-card-craft-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2ec4b6, #ff9f1c, #8b5cf6, #ff6b6b);
+  animation: pcCraftBar 1.05s ease forwards;
+}
+@keyframes pcCraftBar {
+  to { width: 100%; }
+}
+
+.player-card-flip {
+  width: min(92vw, 360px);
+  perspective: 1200px;
+  cursor: pointer;
+}
+.player-card-flip-inner {
+  position: relative;
+  width: 100%;
+  min-height: 420px;
+  transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.4, 0.05, 0.2, 1);
+}
+.player-card-flip.is-flipped .player-card-flip-inner {
+  transform: rotateY(180deg);
+}
+.player-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 24px;
+  padding: 28px 22px 20px;
+  text-align: center;
+  background: linear-gradient(160deg, rgba(28,22,40,0.98), rgba(10,12,20,0.98));
+  /* multi-colour border (same family as hub accents) */
+  box-shadow:
+    0 0 0 2px transparent,
+    0 16px 40px rgba(0,0,0,0.45);
+  background-clip: padding-box;
+}
+.player-card-chroma {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, #2ec4b6, #ff9f1c, #8b5cf6, #ff6b6b, #2ec4b6);
+  background-size: 200% 200%;
+  animation: pcChroma 6s linear infinite;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+@keyframes pcChroma {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.player-card-back {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.player-card-hint {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+}
+.player-card-front {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.player-card-front .player-card-actions {
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+}
+.player-card-flip.is-flipped {
+  cursor: default;
 }
