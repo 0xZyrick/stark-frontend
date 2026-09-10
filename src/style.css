@@ -3573,29 +3573,42 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   }
 }
 
-/* Mascot in normal flow BELOW the board (visible, not behind, not on orbs) */
+/* Mascot on the RIGHT EDGE of the board frame — never covers columns or quest */
 .mascot-board-anchor {
-  position: relative;
+  position: absolute;
   left: auto;
-  right: auto;
+  right: 0;
+  top: 50%;
   bottom: auto;
-  transform: none;
-  z-index: 1;
+  transform: translate(72%, -50%);
+  z-index: 4;
   pointer-events: none;
   width: max-content;
-  margin: 10px auto 0;
+  margin: 0;
   flex-shrink: 0;
+}
+@media (max-width: 520px) {
+  .mascot-board-anchor {
+    transform: translate(58%, -40%);
+  }
+  .mascot-board-anchor .mascot {
+    width: 44px !important;
+    height: 44px !important;
+  }
 }
 .game-page .board-wrap {
   position: relative;
 }
+/* Speech on the SIDE of the mascot (left), not stacked on top of the board */
 .mascot-speech {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 88px;
-  max-width: 140px;
+  top: 50%;
+  bottom: auto;
+  left: auto;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+  min-width: 72px;
+  max-width: 110px;
   padding: 6px 10px;
   border-radius: 12px;
   background: rgba(12, 16, 24, 0.92);
@@ -3608,19 +3621,24 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   box-shadow: 0 6px 18px rgba(0,0,0,0.4);
   animation: speechIn 0.25s ease;
   z-index: 7;
+  white-space: normal;
 }
 .mascot-speech::after {
   content: '';
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
   border: 6px solid transparent;
-  border-top-color: rgba(12, 16, 24, 0.92);
+  border-left-color: rgba(12, 16, 24, 0.92);
+  border-top-color: transparent;
 }
 @keyframes speechIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  from { opacity: 0; transform: translateY(-50%) translateX(4px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+.mascot-board-anchor .mascot {
+  position: relative;
 }
 .mascot-spin img {
   animation: mascotRoll 0.7s ease;
@@ -3681,6 +3699,9 @@ button img, .hub-avatar, .login-logo-img, .splash-logo-img {
   width: 100%;
   max-width: 100%;
   gap: 4px;
+  /* room so edge mascot + side speech don't clip */
+  padding-right: 56px;
+  overflow: visible;
 }
 
 
@@ -4180,4 +4201,157 @@ body.in-game #bottomNav {
   background: rgba(255,159,28,0.22);
   color: var(--gold, #ff9f1c);
   flex-shrink: 0;
+}
+
+.score-tracks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 520px) {
+  .score-tracks {
+    grid-template-columns: 1fr;
+  }
+}
+.score-track-daily .st-value {
+  color: var(--gold, #ff9f1c);
+}
+
+.tile.orb-crown {
+  overflow: hidden;
+  background: transparent !important;
+}
+.tile .crown-art {
+  position: absolute;
+  inset: 4%;
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+  pointer-events: none;
+  border-radius: 50%;
+  z-index: 1;
+}
+.tile.orb-crown .num {
+  z-index: 2;
+  font-size: 9px;
+  opacity: 0.85;
+  bottom: 6%;
+}
+
+.hub-player-chip-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.hub-player-chip-btn:active { transform: scale(0.98); }
+
+.player-card-overlay { z-index: 200; }
+.player-card-sheet {
+  position: relative;
+  width: min(92vw, 360px);
+  padding: 28px 22px 20px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(28,22,40,0.98), rgba(10,12,20,0.98));
+  box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,159,28,0.25);
+  text-align: center;
+  overflow: hidden;
+}
+.player-card-glow {
+  position: absolute;
+  inset: -40% -20% auto;
+  height: 70%;
+  background: radial-gradient(circle, rgba(255,159,28,0.2), transparent 70%);
+  pointer-events: none;
+}
+.player-card-mascot {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin: 0 auto 8px;
+  position: relative;
+  z-index: 1;
+}
+.player-card-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  position: relative;
+  z-index: 1;
+}
+.player-card-rank {
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.player-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+  margin-bottom: 14px;
+}
+.player-card-stats div {
+  background: rgba(0,0,0,0.28);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.player-card-stats span {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.player-card-stats b {
+  font-size: 16px;
+  font-weight: 800;
+}
+.player-card-tagline {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin: 0 0 14px;
+}
+.player-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spire-perks-card { max-width: 400px; text-align: left; }
+.spire-perks-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.spire-perks-list li {
+  background: rgba(0,0,0,0.25);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.spire-perks-list b {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.spire-perks-list span {
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+.spire-cost-line {
+  font-size: 13px;
+  margin: 8px 0 14px;
+  color: var(--ink-dim);
 }

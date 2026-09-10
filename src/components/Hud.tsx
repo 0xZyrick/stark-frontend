@@ -29,6 +29,7 @@ type HudProps = {
 
 /** Representative tile value for a glyph so orb paint matches board orbs */
 function valueForSymbol(sym: string): number {
+  if (sym === '👑') return 1024;
   const idx = (SYMBOLS as readonly string[]).indexOf(sym);
   if (idx >= 0) return Math.pow(2, idx + 1);
   return 4;
@@ -145,7 +146,7 @@ export function Hud({
                         boxShadow: ORB_BOX_SHADOW,
                       }}
                     >
-                      <span className="glyph">{glyphFor(val)}</span>
+                      <span className="glyph">{sym === '👑' ? '👑' : sym}</span>
                     </div>
                     <div className="shape-counter-nums">
                       <b>{Math.min(cur, shapeTarget)}</b>

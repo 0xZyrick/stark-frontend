@@ -9,6 +9,9 @@ export type SavedProgress = {
   /** Level ids cleared in guest mode (unlocks next level / world). */
   guestClearedLevels: string[];
   mainHighScore: number;
+  /** Best score for the calendar day (UTC date key). */
+  dailyBest: number;
+  dailyBestDate: string; // YYYY-MM-DD
   shards: number;
   bestTierReached: number;
   updatedAt: number;
@@ -22,6 +25,8 @@ function empty(): SavedProgress {
     guestLevelBest: {},
     guestClearedLevels: [],
     mainHighScore: 0,
+    dailyBest: 0,
+    dailyBestDate: '',
     shards: 0,
     bestTierReached: 0,
     updatedAt: 0,
@@ -41,6 +46,8 @@ export function loadProgress(userId: string | null | undefined): SavedProgress |
       guestClearedLevels: Array.isArray(parsed.guestClearedLevels)
         ? parsed.guestClearedLevels
         : [],
+      dailyBest: parsed.dailyBest ?? 0,
+      dailyBestDate: parsed.dailyBestDate ?? '',
     };
   } catch {
     return null;
@@ -59,6 +66,8 @@ export function saveProgress(
       guestLevelBest: data.guestLevelBest ?? prev.guestLevelBest,
       guestClearedLevels: data.guestClearedLevels ?? prev.guestClearedLevels,
       mainHighScore: data.mainHighScore ?? prev.mainHighScore,
+      dailyBest: data.dailyBest ?? prev.dailyBest,
+      dailyBestDate: data.dailyBestDate ?? prev.dailyBestDate,
       shards: data.shards ?? prev.shards,
       bestTierReached: data.bestTierReached ?? prev.bestTierReached,
       updatedAt: Date.now(),
@@ -70,4 +79,25 @@ export function saveProgress(
   } catch {
     /* ignore */
   }
+}
+
+
+export function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** All-time unchanged; daily best resets when the calendar day changes. */
+export function effectiveDailyBest(saved: SavedProgress | null | undefined): number {
+  if (!saved) return 0;
+  if (saved.dailyBestDate !== todayKey()) return 0;
+  return saved.dailyBest || 0;
+}
+
+export function nextDailyBest(saved: SavedProgress | null | undefined, score: number): {
+  dailyBest: number;
+  dailyBestDate: string;
+} {
+  const day = todayKey();
+  const prev = saved && saved.dailyBestDate === day ? saved.dailyBest || 0 : 0;
+  return { dailyBest: Math.max(prev, score), dailyBestDate: day };
 }

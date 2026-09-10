@@ -151,7 +151,7 @@ export const SCORE_STAGE_THRESHOLDS = [
 
 /** Soft cap so one mega-merge can't clear a whole depth alone. 256 * 3 */
 export const MERGE_SCORE_CAP = 768;
-export const SCORE_MULTIPLIER = 3;
+export const SCORE_MULTIPLIER = 2;
 
 export const WORLDS: World[] = [
   { id: 'outer', name: 'Outer Spire', icon: '🌑', scene: 'scene-outer', start: 0, end: 3 },

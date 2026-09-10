@@ -14,6 +14,8 @@ import { SigilsPage } from './pages/SigilsPage';
 import { GamePage } from './pages/GamePage';
 import { FundPromptModal } from './components/FundPromptModal';
 import { SettingsModal } from './components/SettingsModal';
+import { PlayerCard } from './components/PlayerCard';
+import { SpirePerksModal } from './components/SpirePerksModal';
 import { Mascot } from './components/Mascot';
 import { sndUI, unlockAudio, pauseMusic, resumeMusic } from './audio/sound';
 import {
@@ -135,6 +137,8 @@ function AppShell({
   const [showWorldSelect, setShowWorldSelect] = useState(false);
   const [showFundPrompt, setShowFundPrompt] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlayerCard, setShowPlayerCard] = useState(false);
+  const [showSpirePerks, setShowSpirePerks] = useState(false);
   const [spireBusy, setSpireBusy] = useState(false);
   const [spireError, setSpireError] = useState<string | null>(null);
   const [setupBusy, setSetupBusy] = useState(false);
@@ -444,6 +448,7 @@ function AppShell({
         playerName={meta.playerName}
         rank={rank}
         mainHighScore={meta.mainHighScore}
+        dailyBest={meta.dailyBest}
         guestHighScore={Object.values(meta.guestLevelBest).reduce(
           (a, b) => Math.max(a, b),
           0,
@@ -463,7 +468,7 @@ function AppShell({
         walletAddress={wallet.address}
         onLogout={() => void doLogout()}
         leaderboard={remoteLb}
-        onEnterSpire={() => void enterSpireDirect()}
+        onEnterSpire={() => { sndUI(); setShowSpirePerks(true); }}
         spireBusy={spireBusy}
         spireError={spireError}
         onGuest={onGuest}
@@ -480,6 +485,10 @@ function AppShell({
         onOpenSettings={() => {
           sndUI();
           setShowSettings(true);
+        }}
+        onOpenProfile={() => {
+          sndUI();
+          setShowPlayerCard(true);
         }}
       />
       <WorldSelectPage
@@ -511,6 +520,32 @@ function AppShell({
         onSaveName={(name) => {
           setPlayerName(name);
           speakNarrator(`You're ${name} now.`, 1400);
+        }}
+      />
+
+      <PlayerCard
+        open={showPlayerCard}
+        onClose={() => setShowPlayerCard(false)}
+        playerName={meta.playerName}
+        rankName={rank.name}
+        rankColor={rank.color}
+        rankIcon={rank.iconSrc}
+        mainBest={meta.mainHighScore}
+        guestBest={meta.highScore}
+        dailyBest={meta.dailyBest}
+        shards={meta.shards}
+        sigilCount={meta.ownedSigils?.size ?? 0}
+        sigilLimit={meta.isGuest ? 2 : 6}
+        achievementCount={meta.achievements?.size ?? 0}
+      />
+
+      <SpirePerksModal
+        open={showSpirePerks}
+        onClose={() => setShowSpirePerks(false)}
+        canProceed={false}
+        onProceed={() => {
+          setShowSpirePerks(false);
+          void enterSpireDirect();
         }}
       />
 

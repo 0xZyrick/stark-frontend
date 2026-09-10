@@ -20,6 +20,7 @@ type HomePageProps = {
   rank: RankTitle;
   mainHighScore: number;
   guestHighScore: number;
+  dailyBest?: number;
   shards: number;
   achievementCount?: number;
   sigilCount?: number;
@@ -38,6 +39,8 @@ type HomePageProps = {
   onAchievements?: () => void;
   onSigils?: () => void;
   onOpenSettings?: () => void;
+  onOpenProfile?: () => void;
+  dailyBest?: number;
 };
 
 function worldMeta(id: string) {
@@ -50,6 +53,7 @@ export function HomePage({
   rank,
   mainHighScore,
   guestHighScore,
+  dailyBest = 0,
   shards,
   achievementCount = 0,
   sigilCount = 0,
@@ -65,13 +69,14 @@ export function HomePage({
   onAchievements,
   onSigils,
   onOpenSettings,
+  onOpenProfile,
   spireError,
 }: HomePageProps) {
   return (
     <div className={`page hub-page game-hub${show ? ' show' : ''}`} id="homePage">
       <div className="hub-header game-hub-header home-topbar">
         <div className="home-topbar-row home-topbar-main">
-          <div className="hub-player-chip">
+          <button type="button" className="hub-player-chip hub-player-chip-btn" onClick={onOpenProfile}>
             <img
               className="hub-avatar"
               src="/images/mascot/orb.png"
@@ -91,7 +96,7 @@ export function HomePage({
                 {rank.name}
               </div>
             </div>
-          </div>
+          </button>
           <div className="home-topbar-end">
             <button
               type="button"
@@ -129,7 +134,7 @@ export function HomePage({
             <div className="score-track score-track-guest">
               <div className="st-label">🧭 Guest Best</div>
               <div className="st-value">{guestHighScore.toLocaleString()}</div>
-              <div className="st-hint">Practice · beat yourself</div>
+              <div className="st-hint">All-time · beat yourself</div>
             </div>
           </div>
 
@@ -155,13 +160,12 @@ export function HomePage({
 
           <div className="home-cta-block">
             <button
-              className="game-btn game-btn-primary spire-soon"
+              className="game-btn game-btn-primary"
               type="button"
-              disabled
-              title="Spire Mode coming soon"
+              onClick={onEnterSpire}
             >
               Spire Mode
-              <span className="game-btn-sub">Coming soon</span>
+              <span className="game-btn-sub">Ranked · see perks</span>
             </button>
             <button className="game-btn game-btn-secondary" type="button" onClick={onGuest}>
               Guest Mode

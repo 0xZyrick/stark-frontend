@@ -16,7 +16,7 @@ import {
   type CSSProperties,
 } from 'react';
 import type { Tile, SkinId } from '../engine';
-import { glyphFor, orbBackground, ORB_BOX_SHADOW, isCrownValue } from '../engine';
+import { glyphFor, orbBackground, ORB_BOX_SHADOW, isCrownValue, crownArtSrc } from '../engine';
 
 type BoardProps = {
   cols: number;
@@ -108,19 +108,31 @@ function TileOrb({ tile, rows, skin, animateIn }: TileOrbProps) {
     return () => clearTimeout(t);
   }, [tile.value]);
 
+  const crown = isCrownValue(tile.value);
   return (
     <div
       ref={elRef}
-      className={`tile${isCrownValue(tile.value) ? ' orb-crown' : ''}`}
+      className={`tile${crown ? ' orb-crown' : ''}`}
       data-id={tile.id}
       data-value={tile.value}
       style={{
-        background: orbBackground(tile.value, skin),
-        boxShadow: ORB_BOX_SHADOW,
+        background: crown
+          ? 'transparent'
+          : orbBackground(tile.value, skin),
+        boxShadow: crown ? 'none' : ORB_BOX_SHADOW,
         opacity: 1,
       }}
     >
-      <span className="glyph">{glyphFor(tile.value)}</span>
+      {crown ? (
+        <img
+          className="crown-art"
+          src={crownArtSrc(tile.value)}
+          alt=""
+          draggable={false}
+        />
+      ) : (
+        <span className="glyph">{glyphFor(tile.value)}</span>
+      )}
       <span className="num">{tile.value}</span>
     </div>
   );

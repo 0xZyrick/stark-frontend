@@ -29,6 +29,17 @@ export function glyphFor(value: number): string {
   return isCrownValue(value) ? '👑' : symbolFor(value);
 }
 
+/** Wired crown orb art — cycles green / blue / gold by tier depth */
+export function crownArtSrc(value: number): string {
+  const tier = tierIndexFor(value);
+  const arts = [
+    '/images/orbs/crown-green.jpg',
+    '/images/orbs/crown-blue.jpg',
+    '/images/orbs/crown-gold.jpg',
+  ];
+  return arts[Math.abs(tier) % arts.length];
+}
+
 /**
  * Palette colour for a tile value under the given skin.
  * Beyond the base palette: golden-angle HSL so deep endless tiles stay distinct.

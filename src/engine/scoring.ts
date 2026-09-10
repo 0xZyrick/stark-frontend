@@ -9,10 +9,22 @@ export function scoreMultiplierForTier(_tier: number): number {
   return SCORE_MULTIPLIER;
 }
 
-export function pointsForMerge(newValue: number, chain: number): number {
-  let pts = Math.max(2, newValue) * SCORE_MULTIPLIER;
+/** Soft pressure by world — not 50x (feels broken), just less juice deeper in */
+export function worldScoreFactor(worldId?: string): number {
+  if (worldId === 'mid') return 0.72;
+  if (worldId === 'core') return 0.55;
+  if (worldId === 'endless') return 0.42;
+  return 1;
+}
+
+export function pointsForMerge(
+  newValue: number,
+  chain: number,
+  worldId?: string,
+): number {
+  let pts = Math.max(2, newValue) * SCORE_MULTIPLIER * worldScoreFactor(worldId);
   if (chain >= 2) pts = Math.floor(pts * (1 + 0.25 * Math.min(chain - 1, 4)));
-  return Math.min(MERGE_SCORE_CAP, pts);
+  return Math.min(MERGE_SCORE_CAP, Math.floor(pts));
 }
 
 /**

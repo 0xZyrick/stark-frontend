@@ -5,7 +5,7 @@
  * lives here as pure state transitions. Legacy DOM still paints in
  * parallel until Phase 3 swaps components in.
  */
-import { loadProgress, saveProgress } from '../lib/accountStore';
+import { loadProgress, saveProgress, effectiveDailyBest, nextDailyBest, todayKey } from '../lib/accountStore';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   tierFromScore,
@@ -35,6 +35,8 @@ import {
   relicToAward,
   awardRelic,
   glyphFor,
+  symbolFor,
+  isCrownValue,
   SIGILS,
   ACHIEVEMENTS,
   GUEST_SIGIL_LIMIT,
@@ -111,6 +113,8 @@ const defaultMeta = (): MetaState => ({
   phase: 'splash',
   highScore: 0,
   mainHighScore: 0,
+  dailyBest: 0,
+  dailyBestDate: '',
   guestLevelBest: {},
   guestClearedLevels: [],
   activeLevelId: null,
@@ -231,6 +235,8 @@ export function useGameEngine(accountId?: string | null) {
         ? [...saved.guestClearedLevels]
         : m.guestClearedLevels,
       mainHighScore: saved.mainHighScore ?? m.mainHighScore,
+      dailyBest: effectiveDailyBest(saved),
+      dailyBestDate: saved.dailyBestDate === todayKey() ? saved.dailyBestDate : todayKey(),
       shards: saved.shards ?? m.shards,
       bestTierReached: saved.bestTierReached ?? m.bestTierReached,
     }));
@@ -244,6 +250,8 @@ export function useGameEngine(accountId?: string | null) {
       guestLevelBest: meta.guestLevelBest,
       guestClearedLevels: meta.guestClearedLevels,
       mainHighScore: meta.mainHighScore,
+      dailyBest: meta.dailyBest,
+      dailyBestDate: meta.dailyBestDate,
       shards: meta.shards,
       bestTierReached: meta.bestTierReached,
     });
@@ -427,8 +435,14 @@ export function useGameEngine(accountId?: string | null) {
               vaultAdds.push(name);
               relics += 1;
             }
-            const g = glyphFor(ev.newValue);
-            shapeAdds[g] = (shapeAdds[g] || 0) + 1;
+            // Count the tier glyph (★…✹). Crowns also count as 👑 so either
+            // objective style works — previously 1024+ only incremented 👑 and
+            // left ✹ quests stuck at 0 forever while crown orbs sat on the board.
+            const base = symbolFor(ev.newValue);
+            shapeAdds[base] = (shapeAdds[base] || 0) + 1;
+            if (isCrownValue(ev.newValue)) {
+              shapeAdds['👑'] = (shapeAdds['👑'] || 0) + 1;
+            }
           }
         }
 
@@ -531,6 +545,23 @@ export function useGameEngine(accountId?: string | null) {
             mainHighScore: m.isGuest
               ? m.mainHighScore
               : Math.max(m.mainHighScore, s.score),
+            ...(() => {
+              const d = nextDailyBest(
+                {
+                  playerName: m.playerName,
+                  guestLevelBest: m.guestLevelBest,
+                  guestClearedLevels: m.guestClearedLevels,
+                  mainHighScore: m.mainHighScore,
+                  dailyBest: m.dailyBest,
+                  dailyBestDate: m.dailyBestDate,
+                  shards: m.shards,
+                  bestTierReached: m.bestTierReached,
+                  updatedAt: 0,
+                },
+                s.score,
+              );
+              return d;
+            })(),
             guestLevelBest:
               m.isGuest && m.activeLevelId
                 ? {
