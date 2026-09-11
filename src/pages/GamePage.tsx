@@ -11,13 +11,17 @@ import type { GameEngine } from '../hooks/useGameEngine';
 import { playBoardEvent, sndLevelUp, sndWin, sndLose, unlockAudio } from '../audio/sound';
 import { hapticForEvent, vibrate } from '../audio/haptics';
 import { WORLD_BG, chainWord, depthNameFor, nextLevelInWorld, levelById } from '../engine';
+import { isTrialLevel } from '../lib/trialSession';
 
 type GamePageProps = {
   engine: GameEngine;
   show: boolean;
+  /** Logged-out trial: block Next into L3+ */
+  trialMode?: boolean;
+  onTrialBlocked?: () => void;
 };
 
-export function GamePage({ engine, show }: GamePageProps) {
+export function GamePage({ engine, show, trialMode = false, onTrialBlocked }: GamePageProps) {
   const {
     tiles,
     cols,
@@ -326,19 +330,28 @@ export function GamePage({ engine, show }: GamePageProps) {
           </div>
         </div>
         <div className="btn-row win-actions">
-          {meta.activeLevelId && nextLevelInWorld(meta.activeLevelId) ? (
-            <button
-              className="primary"
-              type="button"
-              onClick={() => {
-                vibrate([30, 50, 30]);
-                const next = nextLevelInWorld(meta.activeLevelId!);
-                if (next) startCampaignLevel(next);
-              }}
-            >
-              Next level →
-            </button>
-          ) : null}
+          {(() => {
+            const next =
+              meta.activeLevelId ? nextLevelInWorld(meta.activeLevelId) : null;
+            if (!next) return null;
+            const blocked = trialMode && !isTrialLevel(next.id);
+            return (
+              <button
+                className="primary"
+                type="button"
+                onClick={() => {
+                  vibrate([30, 50, 30]);
+                  if (blocked) {
+                    onTrialBlocked?.();
+                    return;
+                  }
+                  startCampaignLevel(next);
+                }}
+              >
+                {blocked ? 'Log in for more →' : 'Next level →'}
+              </button>
+            );
+          })()}
           <button
             className="secondary"
             type="button"

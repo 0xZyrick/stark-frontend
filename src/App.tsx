@@ -582,7 +582,15 @@ function AppShell({
         isGuest={meta.isGuest}
         onBack={() => setShowSigils(false)}
       />
-      <GamePage engine={engine} show={showGame} />
+      <GamePage
+        engine={engine}
+        show={showGame}
+        trialMode={isTrial}
+        onTrialBlocked={() => {
+          setShowSavePrompt(true);
+          setPhase('home');
+        }}
+      />
 
       <SettingsModal
         open={showSettings}
@@ -715,3 +723,4 @@ export default function App() {
     </>
   );
 }
+
