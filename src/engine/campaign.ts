@@ -318,3 +318,9 @@ export function isGuestWorldUnlocked(
   const set = cleared instanceof Set ? cleared : new Set(cleared);
   return set.has(last.id);
 }
+
+
+/** Without login: only Outer 1 & 2 */
+export function isTrialLevelUnlocked(levelId: string): boolean {
+  return levelId === 'outer-1' || levelId === 'outer-2';
+}

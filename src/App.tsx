@@ -12,10 +12,17 @@ import { WorldSelectPage } from './pages/WorldSelectPage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { SigilsPage } from './pages/SigilsPage';
 import { GamePage } from './pages/GamePage';
-import { FundPromptModal } from './components/FundPromptModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PlayerCard } from './components/PlayerCard';
 import { SpirePerksModal } from './components/SpirePerksModal';
+import { SpireEntry } from './pages/SpireEntry';
+import { SpireHub } from './pages/SpireHub';
+import { SaveProgressModal } from './components/SaveProgressModal';
+import {
+  TRIAL_ACCOUNT_ID,
+  isTrialLevel,
+  mergeTrialIntoAccount,
+} from './lib/trialSession';
 import { Mascot } from './components/Mascot';
 import { sndUI, unlockAudio, pauseMusic, resumeMusic } from './audio/sound';
 import {
@@ -66,7 +73,7 @@ function AppWithWallet() {
   const userId = user?.id ?? null;
   return (
     <AppShell
-      accountId={userId}
+      accountId={authenticated && userId ? userId : TRIAL_ACCOUNT_ID}
       wallet={{
         ...wallet,
         authenticated: Boolean(authenticated),
@@ -105,7 +112,7 @@ function AppWithoutWallet() {
     clearError: () => {},
     userId: null,
   };
-  return <AppShell accountId={null} wallet={wallet} />;
+  return <AppShell accountId={TRIAL_ACCOUNT_ID} wallet={wallet} />;
 }
 
 function AppShell({
@@ -120,6 +127,7 @@ function AppShell({
     phase,
     setPhase,
     startCampaignLevel,
+    startSpireFloor,
     startRun,
     meta,
     rank,
@@ -136,10 +144,14 @@ function AppShell({
   const [showAchv, setShowAchv] = useState(false);
   const [showSigils, setShowSigils] = useState(false);
   const [showWorldSelect, setShowWorldSelect] = useState(false);
-  const [showFundPrompt, setShowFundPrompt] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showPlayerCard, setShowPlayerCard] = useState(false);
   const [showSpirePerks, setShowSpirePerks] = useState(false);
+  const [showSpireEntry, setShowSpireEntry] = useState(false);
+  const [showSpireHub, setShowSpireHub] = useState(false);
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [trialHome, setTrialHome] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [spireBusy, setSpireBusy] = useState(false);
   const [spireError, setSpireError] = useState<string | null>(null);
   const [setupBusy, setSetupBusy] = useState(false);
@@ -179,28 +191,32 @@ function AppShell({
     if (!wallet.authenticated) {
       setSetupBusy(false);
       setShowName(false);
-      if (phase === 'home' || phase === 'splash') setPhase('login');
+      setTrialHome(true);
+      // Home-first: no login wall
+      if (phase === 'splash' || phase === 'login') setPhase('home');
       return;
     }
 
     // Authenticated — restore account
     setSetupBusy(true);
+    setTrialHome(false);
     const uid = wallet.userId || accountId;
     const savedName = readPlayerName(uid);
 
     void (async () => {
       try {
-        await wallet.ensure().catch(() => null);
+        // Optional wallet probe only — never block home
         if (savedName) {
           setPlayerName(savedName);
           setShowName(false);
           setShowWorldSelect(false);
           setShowAchv(false);
           setShowSigils(false);
-          setPhase('home'); // always hub after refresh — never a stuck board
+          setShowLoginModal(false);
+          setPhase('home');
         } else {
           setShowName(true);
-          setPhase('login');
+          setPhase('home');
         }
       } finally {
         setSetupBusy(false);
@@ -279,10 +295,11 @@ function AppShell({
         await wallet.settleRunOnChain({
           runId: run.runId,
           score,
-          depth: tier,
+          depth: Math.max(1, tier),
           bestTile: engine.board.bestTile || 2,
-          movesHash: '0',
-          checksum: '0',
+          movesHash: '0x0',
+          checksum: '0x0',
+          seed: run.seed,
           name: meta.playerName,
           worldId,
         });
@@ -311,17 +328,31 @@ function AppShell({
     })();
   }, [phase, meta.isGuest, meta.playerName, score, tier, engine.board.bestTile, wallet]);
 
+  // Trial: after clearing outer-2, prompt to save
+  useEffect(() => {
+    if (wallet.authenticated) return;
+    if (phase !== 'depthclear' && phase !== 'gameover' && phase !== 'home') return;
+    if (meta.guestClearedLevels?.includes('outer-2')) {
+      setShowSavePrompt(true);
+    }
+  }, [phase, meta.guestClearedLevels, wallet.authenticated]);
+
   const afterAuth = (hint?: string) => {
     unlockAudio();
     sndUI();
     setSetupBusy(true);
+    setShowSavePrompt(false);
+    setShowLoginModal(false);
     const uid = wallet.userId || accountId;
+    if (uid && uid !== TRIAL_ACCOUNT_ID) {
+      mergeTrialIntoAccount(uid);
+    }
     const progress = loadProgress(uid);
     const saved = progress?.playerName || null;
     void (async () => {
       try {
         await wallet.ensure().catch(() => null);
-        if (saved) {
+        if (saved && saved.toLowerCase() !== 'player') {
           setPlayerName(saved);
           setShowName(false);
           setPhase('home');
@@ -341,15 +372,15 @@ function AppShell({
     setShowName(false);
     setPhase('home');
     setWelcomeName(clean);
-    speakNarrator(`Welcome, ${clean}. The Spire awaits.`, 2400);
+    speakNarrator(`Welcome, ${clean}.`, 2000);
     window.setTimeout(() => setWelcomeName(null), 2800);
-    window.setTimeout(() => setShowFundPrompt(true), 900);
-    void wallet.ensure().catch(() => {});
   };
 
   const onGuest = () => {
     unlockAudio();
     sndUI();
+    if (!wallet.authenticated) setTrialHome(true);
+    setPhase('home');
     setShowWorldSelect(true);
     setShowAchv(false);
   };
@@ -357,6 +388,11 @@ function AppShell({
   const onPlayLevel = (level: CampaignLevel) => {
     unlockAudio();
     sndUI();
+    if (!wallet.authenticated && !isTrialLevel(level.id)) {
+      setShowWorldSelect(false);
+      setShowSavePrompt(true);
+      return;
+    }
     setShowWorldSelect(false);
     startCampaignLevel(level);
   };
@@ -371,16 +407,26 @@ function AppShell({
         setSpireError('Log in first');
         return;
       }
-      if (!wallet.address) await wallet.ensure();
+      // Connect Argent/Braavos (opens extension if needed)
+      try {
+        await wallet.ensure();
+      } catch (connErr) {
+        setSpireError((connErr as Error).message || 'Connect Argent X or Braavos');
+        return;
+      }
+      if (!wallet.address) {
+        setSpireError('Wallet required — connect Argent X or Braavos');
+        return;
+      }
       const res = await wallet.startRunOnChain();
       activeRunRef.current = { runId: res.runId, seed: res.seed };
-      startRun({ guest: false, daily: false, startTier: 0 });
+      setShowSpirePerks(false);
+      setShowSpireEntry(true);
       speakNarrator('The Spire awaits.', 1600);
     } catch (e) {
       const msg = (e as Error).message || 'Could not start run';
       if (/fund|balance|insufficient|top up|not ready on-chain/i.test(msg)) {
         setSpireError('Insufficient balance — please top up');
-        setShowFundPrompt(true);
         speakNarrator('Copy your address to fund it.', 2400);
       } else if (/login|auth/i.test(msg)) {
         setSpireError('Not logged in');
@@ -398,8 +444,12 @@ function AppShell({
     } catch {
       /* ignore */
     }
+    setTrialHome(true);
+    setShowWorldSelect(false);
+    setShowSavePrompt(false);
+    setShowLoginModal(false);
     setShowName(false);
-    setShowFundPrompt(false);
+    setPhase('home');
     setPhase('login');
     speakNarrator('Logged out.', 1400);
   };
@@ -435,7 +485,12 @@ function AppShell({
         </div>
       )}
 
-      <LoginPage show={showLogin} onContinue={afterAuth} />
+      <LoginPage
+        show={showLoginModal}
+        asModal
+        onContinue={afterAuth}
+        onClose={() => setShowLoginModal(false)}
+      />
       <NamePage
         show={showName && wallet.authenticated && !setupBusy}
         initial={meta.playerName}
@@ -466,7 +521,19 @@ function AppShell({
         walletAddress={wallet.address}
         onLogout={() => void doLogout()}
         leaderboard={remoteLb}
-        onEnterSpire={() => { sndUI(); setShowSpirePerks(true); }}
+        onEnterSpire={() => {
+          sndUI();
+          if (!wallet.authenticated) {
+            setShowLoginModal(true);
+            return;
+          }
+          setShowSpirePerks(true);
+        }}
+        onLogin={() => {
+          sndUI();
+          setShowLoginModal(true);
+        }}
+        isLoggedIn={wallet.authenticated}
         spireBusy={spireBusy}
         spireError={spireError}
         onGuest={onGuest}
@@ -486,6 +553,10 @@ function AppShell({
         }}
         onOpenProfile={() => {
           sndUI();
+          if (!wallet.authenticated) {
+            setShowLoginModal(true);
+            return;
+          }
           setShowPlayerCard(true);
         }}
       />
@@ -495,6 +566,7 @@ function AppShell({
         onPlayLevel={onPlayLevel}
         guestLevelBest={meta.guestLevelBest}
         guestClearedLevels={meta.guestClearedLevels}
+        trialMode={isTrial}
       />
       <AchievementsPage
         show={showAchievements}
@@ -519,10 +591,14 @@ function AppShell({
           setPlayerName(name);
           speakNarrator(`You're ${name} now.`, 1400);
         }}
+        onLogout={() => {
+          setShowSettings(false);
+          void doLogout();
+        }}
       />
 
       <PlayerCard
-        open={showPlayerCard}
+        open={showPlayerCard && wallet.authenticated}
         onClose={() => setShowPlayerCard(false)}
         playerName={meta.playerName}
         rankName={rank.name}
@@ -542,26 +618,56 @@ function AppShell({
 
       <SpirePerksModal
         open={showSpirePerks}
-        onClose={() => setShowSpirePerks(false)}
-        canProceed={false}
-        onProceed={() => {
+        onClose={() => {
           setShowSpirePerks(false);
-          void enterSpireDirect();
+          setSpireError(null);
+        }}
+        canProceed={wallet.authenticated && !spireBusy}
+        busy={spireBusy}
+        walletReady={Boolean(wallet.address)}
+        costLabel="Network gas · Argent/Braavos"
+        error={spireError || wallet.error}
+        onProceed={() => void enterSpireDirect()}
+      />
+
+      {showSpireEntry && (
+        <SpireEntry
+          onDone={() => {
+            setShowSpireEntry(false);
+            setShowSpireHub(true);
+          }}
+        />
+      )}
+
+      <SpireHub
+        show={showSpireHub}
+        cleared={meta.spireClearedFloors || []}
+        onBack={() => {
+          setShowSpireHub(false);
+          setPhase('home');
+          // active run settles when a Spire play ends (existing settle effect)
+        }}
+        onPlayFloor={(floor) => {
+          if (!activeRunRef.current) {
+            setSpireError('Wallet run not open — enter Spire again');
+            setShowSpireHub(false);
+            setShowSpirePerks(true);
+            return;
+          }
+          startSpireFloor(floor);
+          setShowSpireHub(false);
+          setPhase('playing');
+          speakNarrator(floor.name, 1200);
         }}
       />
 
-      <FundPromptModal
-        open={showFundPrompt && hasAccount}
-        address={wallet.address}
-        balanceHint={wallet.balanceHint}
-        busy={wallet.busy}
-        onPrepareWallet={() => {
-          void wallet.ensure().catch(() => {});
+      <SaveProgressModal
+        open={showSavePrompt && isTrial}
+        onLogin={() => {
+          setShowSavePrompt(false);
+          setShowLoginModal(true);
         }}
-        onRefreshBalance={() => {
-          void wallet.refreshBalance?.();
-        }}
-        onSkip={() => setShowFundPrompt(false)}
+        onLater={() => setShowSavePrompt(false)}
       />
 
       {welcomeName && (

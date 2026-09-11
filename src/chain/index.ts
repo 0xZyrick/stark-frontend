@@ -99,7 +99,19 @@ export function computeChecksum(
     // This used to be a hand-rolled xor/multiply mix that the contract had
     // no way of reproducing (it just summed the raw values), so every real
     // settle_run call was reverting with invalid_checksum.
-    const elements = [seed, score, depth, bestTile, movesHash].map((v) => BigInt(v));
+    const toFelt = (v: string | number) => {
+      if (typeof v === 'number') return BigInt(v);
+      const s = String(v).trim();
+      if (s.startsWith('0x') || s.startsWith('0X')) return BigInt(s);
+      if (/^[0-9]+$/.test(s)) return BigInt(s);
+      // hex without prefix
+      try {
+        return BigInt(`0x${s}`);
+      } catch {
+        return BigInt(0);
+      }
+    };
+    const elements = [seed, score, depth, bestTile, movesHash].map(toFelt);
     return hash.computePoseidonHashOnElements(elements);
 }
 

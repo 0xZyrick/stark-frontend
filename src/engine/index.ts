@@ -16,5 +16,5 @@ export * from './vault';
 export * from './achievements';
 export * from './moveLog';
 export * from './board';
-
 export * from './campaign';
+export * from './spire';

@@ -1,5 +1,5 @@
 /**
- * Settings — name, music, SFX.
+ * Settings — name, music, SFX, log out.
  */
 import {
   isMusicOn,
@@ -8,6 +8,7 @@ import {
   setSoundOn,
   startMusic,
   stopMusic,
+  sndUI,
 } from '../audio/sound';
 import { useEffect, useState } from 'react';
 
@@ -16,9 +17,16 @@ type Props = {
   onClose: () => void;
   playerName?: string;
   onSaveName?: (name: string) => void;
+  onLogout?: () => void;
 };
 
-export function SettingsModal({ open, onClose, playerName = '', onSaveName }: Props) {
+export function SettingsModal({
+  open,
+  onClose,
+  playerName = '',
+  onSaveName,
+  onLogout,
+}: Props) {
   const [sfx, setSfx] = useState(() => isSoundOn());
   const [music, setMusic] = useState(() => isMusicOn());
   const [name, setName] = useState(playerName);
@@ -91,6 +99,19 @@ export function SettingsModal({ open, onClose, playerName = '', onSaveName }: Pr
             {sfx ? 'On' : 'Off'}
           </button>
         </label>
+
+        {onLogout ? (
+          <button
+            type="button"
+            className="settings-logout-btn"
+            onClick={() => {
+              sndUI();
+              onLogout();
+            }}
+          >
+            Log out
+          </button>
+        ) : null}
 
         <div className="spire-entry-actions">
           <button type="button" className="game-btn game-btn-secondary" onClick={onClose}>

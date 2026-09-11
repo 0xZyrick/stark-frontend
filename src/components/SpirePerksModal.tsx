@@ -1,14 +1,16 @@
 
 /**
- * Spire Mode intro — perks, cost, proceed or back.
- * Proceed later triggers wallet; for now can stay disabled / coming soon.
+ * Spire Mode — wallet required. No offline shaft.
  */
 type Props = {
   open: boolean;
   onClose: () => void;
   onProceed?: () => void;
   canProceed?: boolean;
+  busy?: boolean;
   costLabel?: string;
+  error?: string | null;
+  walletReady?: boolean;
 };
 
 export function SpirePerksModal({
@@ -16,7 +18,10 @@ export function SpirePerksModal({
   onClose,
   onProceed,
   canProceed = false,
+  busy = false,
   costLabel = 'Network gas (your wallet)',
+  error = null,
+  walletReady = false,
 }: Props) {
   if (!open) return null;
 
@@ -25,41 +30,39 @@ export function SpirePerksModal({
       <div className="spire-entry-card spire-perks-card">
         <h2 className="spire-entry-title">Spire Mode</h2>
         <p className="spire-entry-body">
-          Ranked climbs that can stick. Guest is practice — Spire is the permanent lane.
+          Underground shaft. Wallet required — no offline path.
         </p>
         <ul className="spire-perks-list">
           <li>
-            <b>Leaderboard</b>
-            <span>Your Main Best can appear on the global board</span>
+            <b>Shaft floors</b>
+            <span>Vertical climb under the compound</span>
           </li>
           <li>
-            <b>Season rank</b>
-            <span>Title on your player card for this season</span>
+            <b>On-chain run</b>
+            <span>start_run when you enter · settle when you finish</span>
           </li>
           <li>
-            <b>Spire box</b>
-            <span>Lucky opens as you climb — common → rare</span>
-          </li>
-          <li>
-            <b>Payless pass / extra undo</b>
-            <span>Soft perks from boxes</span>
-          </li>
-          <li>
-            <b>Sigil (rare)</b>
-            <span>Forever-ish mark — NFT path when mint is live</span>
+            <b>Full sigils</b>
+            <span>Spire can hold the whole set</span>
           </li>
         </ul>
         <p className="spire-cost-line">
           Cost: <b>{costLabel}</b>
         </p>
+        {!walletReady && (
+          <p className="spire-inline-error">
+            Install Argent X or Braavos, connect, fund Sepolia, then Descend
+          </p>
+        )}
+        {error ? <p className="spire-inline-error">{error}</p> : null}
         <div className="spire-entry-actions">
           <button
             type="button"
             className="game-btn game-btn-primary"
-            disabled={!canProceed}
+            disabled={!canProceed || busy}
             onClick={onProceed}
           >
-            {canProceed ? 'Connect & enter' : 'Coming soon'}
+            {busy ? 'Opening…' : canProceed ? 'Descend' : 'Wallet required'}
           </button>
           <button type="button" className="game-btn game-btn-secondary" onClick={onClose}>
             Back home

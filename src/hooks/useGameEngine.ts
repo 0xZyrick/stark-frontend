@@ -52,6 +52,7 @@ import {
   type Sigil,
   nextLevelInWorld,
   type CampaignLevel,
+  type SpireFloor,
 } from '../engine';
 
 export type GamePhase =
@@ -71,6 +72,7 @@ export type MetaState = {
   /** Guest offline best per campaign level id */
   guestLevelBest: Record<string, number>;
   guestClearedLevels: string[];
+  spireClearedFloors: string[];
   /** Active campaign level id when in guest practice */
   activeLevelId: string | null;
   activeWorldId: string | null;
@@ -117,6 +119,7 @@ const defaultMeta = (): MetaState => ({
   dailyBestDate: '',
   guestLevelBest: {},
   guestClearedLevels: [],
+  spireClearedFloors: [],
   activeLevelId: null,
   activeWorldId: null,
   campaignObjective: null,
@@ -239,6 +242,10 @@ export function useGameEngine(accountId?: string | null) {
         saved && Array.isArray(saved.guestClearedLevels)
           ? [...saved.guestClearedLevels]
           : m.guestClearedLevels,
+      spireClearedFloors:
+        saved && Array.isArray(saved.spireClearedFloors)
+          ? [...saved.spireClearedFloors]
+          : m.spireClearedFloors,
       highScore: Math.max(m.highScore, guestBestFromLevels),
       mainHighScore: saved?.mainHighScore ?? m.mainHighScore,
       dailyBest: effectiveDailyBest(saved),
@@ -268,6 +275,7 @@ export function useGameEngine(accountId?: string | null) {
       playerName: name,
       guestLevelBest: meta.guestLevelBest,
       guestClearedLevels: meta.guestClearedLevels,
+      spireClearedFloors: meta.spireClearedFloors,
       mainHighScore: meta.mainHighScore,
       dailyBest: meta.dailyBest,
       dailyBestDate: meta.dailyBestDate,
@@ -280,6 +288,7 @@ export function useGameEngine(accountId?: string | null) {
     meta.playerName,
     meta.guestLevelBest,
     meta.guestClearedLevels,
+    meta.spireClearedFloors,
     meta.mainHighScore,
     meta.dailyBest,
     meta.dailyBestDate,
@@ -367,6 +376,49 @@ export function useGameEngine(accountId?: string | null) {
       activeWorldId: level.worldId,
       campaignObjective: level.objective,
     }));
+  }, []);
+
+  /** Offline Spire shaft floor */
+  const startSpireFloor = useCallback((floor: SpireFloor) => {
+    let s = restartBoard(floor.cols, floor.rows, 0, floor.depth - 1);
+    s = initQueue(s, floor.depth - 1);
+    setBoard(s);
+    setMeta((m) => ({
+      ...m,
+      phase: 'playing',
+      paused: false,
+      isGuest: false,
+      isDaily: false,
+      usedHoldThisRun: false,
+      survivedDangerThisRun: false,
+      highTilesThisRun: 0,
+      relicsThisRun: 0,
+      maxComboThisRun: 0,
+      combo: 0,
+      shardsEarnedThisRun: 0,
+      lastAnnouncedTier: floor.depth - 1,
+      depthClearFrom: 0,
+      depthClearTo: 0,
+      chainFlash: 0,
+      shapeCounts: {},
+      dropsThisRun: 0,
+      scoreAtDepthStart: 0,
+      unlock: null,
+      activeLevelId: floor.id,
+      activeWorldId: 'endless',
+      campaignObjective: floor.objective,
+    }));
+  }, []);
+
+  const markSpireFloorCleared = useCallback((floorId: string) => {
+    setMeta((m) => {
+      if (m.spireClearedFloors.includes(floorId)) return m;
+      return {
+        ...m,
+        spireClearedFloors: [...m.spireClearedFloors, floorId],
+        mainHighScore: Math.max(m.mainHighScore, m.highScore),
+      };
+    });
   }, []);
 
 
@@ -573,6 +625,7 @@ export function useGameEngine(accountId?: string | null) {
                   playerName: m.playerName,
                   guestLevelBest: m.guestLevelBest,
                   guestClearedLevels: m.guestClearedLevels,
+                  spireClearedFloors: m.spireClearedFloors,
                   mainHighScore: m.mainHighScore,
                   dailyBest: m.dailyBest,
                   dailyBestDate: m.dailyBestDate,
@@ -594,6 +647,13 @@ export function useGameEngine(accountId?: string | null) {
                     ),
                   }
                 : m.guestLevelBest,
+            spireClearedFloors:
+              tierUp &&
+              m.activeLevelId &&
+              m.activeLevelId.startsWith('spire-') &&
+              !m.spireClearedFloors.includes(m.activeLevelId)
+                ? [...m.spireClearedFloors, m.activeLevelId]
+                : m.spireClearedFloors,
             bestTierReached: Math.max(m.bestTierReached, newTier, clearedTo),
             combo,
             maxComboThisRun: Math.max(m.maxComboThisRun, combo),
@@ -847,6 +907,8 @@ export function useGameEngine(accountId?: string | null) {
     setPhase,
     startRun,
     startCampaignLevel,
+    startSpireFloor,
+    markSpireFloorCleared,
     drop,
     hold,
     clearBoardTiles,

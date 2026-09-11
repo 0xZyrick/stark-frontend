@@ -8,6 +8,8 @@ export type SavedProgress = {
   guestLevelBest: Record<string, number>;
   /** Level ids cleared in guest mode (unlocks next level / world). */
   guestClearedLevels: string[];
+  /** Offline Spire shaft floors cleared */
+  spireClearedFloors: string[];
   mainHighScore: number;
   /** Best score for the calendar day (UTC date key). */
   dailyBest: number;
@@ -24,6 +26,7 @@ function empty(): SavedProgress {
     playerName: 'Player',
     guestLevelBest: {},
     guestClearedLevels: [],
+    spireClearedFloors: [],
     mainHighScore: 0,
     dailyBest: 0,
     dailyBestDate: '',
@@ -46,6 +49,9 @@ export function loadProgress(userId: string | null | undefined): SavedProgress |
       guestClearedLevels: Array.isArray(parsed.guestClearedLevels)
         ? parsed.guestClearedLevels
         : [],
+      spireClearedFloors: Array.isArray(parsed.spireClearedFloors)
+        ? parsed.spireClearedFloors
+        : [],
       dailyBest: parsed.dailyBest ?? 0,
       dailyBestDate: parsed.dailyBestDate ?? '',
     };
@@ -65,6 +71,7 @@ export function saveProgress(
       playerName: data.playerName ?? prev.playerName,
       guestLevelBest: data.guestLevelBest ?? prev.guestLevelBest,
       guestClearedLevels: data.guestClearedLevels ?? prev.guestClearedLevels,
+      spireClearedFloors: data.spireClearedFloors ?? prev.spireClearedFloors,
       mainHighScore: data.mainHighScore ?? prev.mainHighScore,
       dailyBest: data.dailyBest ?? prev.dailyBest,
       dailyBestDate: data.dailyBestDate ?? prev.dailyBestDate,

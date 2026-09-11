@@ -41,6 +41,9 @@ type HomePageProps = {
   onOpenSettings?: () => void;
   onOpenProfile?: () => void;
   dailyBest?: number;
+  /** Logged out: open login modal */
+  onLogin?: () => void;
+  isLoggedIn?: boolean;
 };
 
 function worldMeta(id: string) {
@@ -71,6 +74,8 @@ export function HomePage({
   onOpenSettings,
   onOpenProfile,
   spireError,
+  onLogin,
+  isLoggedIn = true,
 }: HomePageProps) {
   return (
     <div className={`page hub-page game-hub${show ? ' show' : ''}`} id="homePage">
@@ -98,6 +103,15 @@ export function HomePage({
             </div>
           </button>
           <div className="home-topbar-end">
+            {!isLoggedIn && onLogin ? (
+              <button
+                type="button"
+                className="home-login-chip"
+                onClick={onLogin}
+              >
+                Log in
+              </button>
+            ) : null}
             <button
               type="button"
               className="settings-gear"
@@ -165,7 +179,9 @@ export function HomePage({
               onClick={onEnterSpire}
             >
               Spire Mode
-              <span className="game-btn-sub">Ranked · see perks</span>
+              <span className="game-btn-sub">
+                {isLoggedIn ? 'Wallet required' : 'Log in required'}
+              </span>
             </button>
             <button className="game-btn game-btn-secondary" type="button" onClick={onGuest}>
               Guest Mode

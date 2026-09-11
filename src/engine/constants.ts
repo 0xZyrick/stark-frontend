@@ -344,12 +344,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 ];
 
 export const SIGILS: Sigil[] = [
-  { id: 'sigil_ember', name: 'Ember Mark', icon: '✦', iconSrc: '/images/sigils/ember.svg', desc: 'First proof sealed.', minTier: 0 },
-  { id: 'sigil_tide', name: 'Tide Mark', icon: '🌊', iconSrc: '/images/sigils/tide.svg', desc: 'Flow under pressure.', minTier: 1 },
-  { id: 'sigil_chain', name: 'Chain Mark', icon: '⛓', iconSrc: '/images/sigils/chain.svg', desc: 'Links that hold.', minTier: 3 },
-  { id: 'sigil_core', name: 'Core Mark', icon: '🔥', iconSrc: '/images/sigils/core.svg', desc: 'Heat of the shaft.', minTier: 6 },
-  { id: 'sigil_void', name: 'Void Mark', icon: '🌑', iconSrc: '/images/sigils/void.svg', desc: 'Endless silence.', minTier: 10 },
-  { id: 'sigil_genesis', name: 'Genesis Mark', icon: '👑', iconSrc: '/images/sigils/genesis.svg', desc: 'Key of the Spire.', minTier: 14 },
+  { id: 'sigil_ember', name: 'Ember Mark', icon: '✦', iconSrc: '/images/sigils/ember.png', desc: 'First seal.', minTier: 0 },
+  { id: 'sigil_tide', name: 'Tide Mark', icon: '🌊', iconSrc: '/images/sigils/tide.png', desc: 'Under pressure.', minTier: 1 },
+  { id: 'sigil_chain', name: 'Chain Mark', icon: '⛓', iconSrc: '/images/sigils/chain.png', desc: 'Links hold.', minTier: 3 },
+  { id: 'sigil_core', name: 'Core Mark', icon: '🔥', iconSrc: '/images/sigils/core.png', desc: 'Shaft heat.', minTier: 6 },
+  { id: 'sigil_void', name: 'Void Mark', icon: '🌑', iconSrc: '/images/sigils/void.png', desc: 'Deep quiet.', minTier: 10 },
+  { id: 'sigil_genesis', name: 'Genesis Mark', icon: '👑', iconSrc: '/images/sigils/genesis.png', desc: 'Spire key.', minTier: 14 },
 ];
 
 /** Guest / quest mode may hold at most this many sigils */

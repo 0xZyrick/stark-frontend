@@ -6,6 +6,7 @@ import {
   CAMPAIGN,
   isGuestLevelUnlocked,
   isGuestWorldUnlocked,
+  isTrialLevelUnlocked,
   type CampaignWorld,
   type CampaignLevel,
 } from '../engine';
@@ -17,6 +18,8 @@ type Props = {
   onPlayLevel: (level: CampaignLevel) => void;
   guestLevelBest?: Record<string, number>;
   guestClearedLevels?: string[];
+  /** Logged-out trial: only Outer L1–L2 */
+  trialMode?: boolean;
 };
 
 export function WorldSelectPage({
@@ -25,6 +28,7 @@ export function WorldSelectPage({
   onPlayLevel,
   guestLevelBest = {},
   guestClearedLevels = [],
+  trialMode = false,
 }: Props) {
   const [world, setWorld] = useState<CampaignWorld | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -47,7 +51,9 @@ export function WorldSelectPage({
   const worldList = (
     <div className="world-list">
       {CAMPAIGN.map((w) => {
-        const unlocked = isGuestWorldUnlocked(w.id, cleared);
+        const unlocked = trialMode
+          ? w.id === 'outer'
+          : isGuestWorldUnlocked(w.id, cleared);
         return (
           <button
             key={w.id}
@@ -64,7 +70,13 @@ export function WorldSelectPage({
                 {unlocked ? w.name : `🔒 ${w.name}`}
               </span>
               <span className="world-row-tag">
-                {unlocked ? w.tagline : 'Clear previous world to unlock'}
+                {unlocked
+                  ? trialMode
+                    ? 'Trial · Levels 1–2'
+                    : w.tagline
+                  : trialMode
+                    ? 'Log in to unlock'
+                    : 'Clear previous world to unlock'}
               </span>
             </span>
             <span className="world-row-meta">{w.levels.length}</span>
@@ -78,7 +90,9 @@ export function WorldSelectPage({
     <div className="level-list">
       {world.levels.map((lv) => {
         const best = guestLevelBest[lv.id];
-        const unlocked = isGuestLevelUnlocked(lv.id, cleared);
+        const unlocked = trialMode
+          ? isTrialLevelUnlocked(lv.id) && isGuestLevelUnlocked(lv.id, cleared)
+          : isGuestLevelUnlocked(lv.id, cleared);
         const clearedLv = cleared.includes(lv.id);
         return (
           <button
