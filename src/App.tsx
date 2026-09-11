@@ -450,23 +450,24 @@ function AppShell({
     setShowLoginModal(false);
     setShowName(false);
     setPhase('home');
-    setPhase('login');
+    setPhase('home');
     speakNarrator('Logged out.', 1400);
   };
 
-  // Home only when authenticated and not mid-setup
-  const hasAccount = wallet.authenticated && !setupBusy;
-  const showLogin = phase === 'login' && !showName && !setupBusy;
+  const isTrial = !wallet.authenticated;
+  // Home-first: trial OR logged-in can use hub / guest play
+  const hasSession = !setupBusy && splashGone;
   const showHome =
-    hasAccount &&
+    hasSession &&
     phase === 'home' &&
     !showAchv &&
     !showWorldSelect &&
     !showSigils;
-  const showAchievements = hasAccount && phase === 'home' && showAchv;
-  const showWorlds = hasAccount && phase === 'home' && showWorldSelect;
+  const showAchievements =
+    hasSession && wallet.authenticated && phase === 'home' && showAchv;
+  const showWorlds = hasSession && phase === 'home' && showWorldSelect;
   const showGame =
-    hasAccount &&
+    hasSession &&
     (phase === 'playing' ||
       phase === 'paused' ||
       phase === 'gameover' ||
@@ -576,7 +577,7 @@ function AppShell({
         onRedeem={(id) => engine.redeemAchievement(id)}
       />
       <SigilsPage
-        show={hasAccount && phase === 'home' && showSigils}
+        show={hasSession && wallet.authenticated && phase === 'home' && showSigils}
         owned={meta.ownedSigils}
         isGuest={meta.isGuest}
         onBack={() => setShowSigils(false)}
